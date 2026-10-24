@@ -23,59 +23,85 @@ export function HomePage() {
 
   return (
     <>
-      {/* 1. Redesigned Corporate FMCG Hero */}
-      <section className="hero">
-        <div className="hero-copy">
-          <div className="hero-badge">
-            <span className="hero-badge-dot" />
-            AUTHORIZED REGIONAL FMCG &amp; HOUSEHOLD DISTRIBUTOR
-          </div>
-          <h1>Authentic Brands.<br />Direct Distribution.</h1>
-          <p className="hero-description">
-            Connecting supermarkets, regional merchants, and households with authentic South Indian pickles, pure ground spices, instant food mixes, home sanitation tools, and pooja essentials. Carrying and forwarding agency for six premier regional manufacturers across Karnataka &amp; South India.
-          </p>
-          <div className="hero-actions">
-            <Link className="button button-cream" to="/wholesale">
-              Wholesale &amp; Trade Supply
-              <ArrowRight size={17} />
-            </Link>
-            <Link className="button button-outline-light" to="/shop">
-              Browse Product Catalogue
-              <ArrowRight size={17} />
-            </Link>
-          </div>
-          <div className="hero-pillars">
-            <div className="hero-pillar-item">
-              <strong>6 Principal Brands</strong>
-              <span>Direct Manufacturer Partner</span>
+      {/* 1. Redesigned Premium Corporate FMCG Hero */}
+      <section className="hero-corporate">
+        <div className="container hero-grid">
+          <div className="hero-copy">
+            <div className="hero-badge-pill">
+              <span className="badge-dot" />
+              <span>Authorized Regional FMCG &amp; Household Distributor</span>
             </div>
-            <div className="hero-pillar-item">
-              <strong>33 Verified SKUs</strong>
-              <span>100% Sealed Factory Stock</span>
+            <h1 className="hero-heading">
+              Authentic Regional Brands.
+              <br />
+              <span>Direct Wholesale &amp; Retail Supply.</span>
+            </h1>
+            <p className="hero-lead">
+              Connecting supermarkets, kirana grocers, institutions, and households with authentic South Indian pickles, pure ground spices, instant food mixes, home sanitation tools, and pooja essentials direct from certified South Indian manufacturers.
+            </p>
+            <div className="hero-cta-group">
+              <Link className="button button-primary" to="/shop">
+                Browse Product Catalogue
+                <ArrowRight size={17} />
+              </Link>
+              <Link className="button button-secondary" to="/wholesale">
+                Wholesale &amp; Trade Supply
+                <ArrowRight size={17} />
+              </Link>
             </div>
-            <div className="hero-pillar-item">
-              <strong>Dual Fulfilment</strong>
-              <span>Wholesale B2B &amp; Retail Supply</span>
+            <div className="hero-stats-row">
+              <div className="stat-item">
+                <strong>6 Principal Brands</strong>
+                <span>Direct Factory Carrying Agency</span>
+              </div>
+              <div className="stat-item">
+                <strong>33 Verified SKUs</strong>
+                <span>100% Sealed Factory Stock</span>
+              </div>
+              <div className="stat-item">
+                <strong>B2B &amp; Retail Logistics</strong>
+                <span>Shimoga &amp; South Karnataka</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="hero-art">
-          <div className="hero-graphic-wrap">
-            <img
-              src="/images/hero-fmcg-packaging.svg"
-              alt="Sree Annapurna Agency Authorized Distribution Network"
-              className="hero-graphic-img"
-            />
+
+          <div className="hero-card-showcase">
+            <div className="showcase-header">
+              <strong>Verified FMCG Distribution</strong>
+              <span>Factory Fresh Stock</span>
+            </div>
+            <div className="hero-showcase-image-wrap">
+              <img
+                src="/images/hero-fmcg-packaging.svg"
+                alt="Sree Annapurna Agency Authorized Distribution Network"
+                loading="eager"
+              />
+            </div>
+            <div className="showcase-brands-strip">
+              <span>Swastik</span>
+              <span>•</span>
+              <span>Rala</span>
+              <span>•</span>
+              <span>Monkey 555</span>
+              <span>•</span>
+              <span>Monkey VVV</span>
+              <span>•</span>
+              <span>Aruna</span>
+              <span>•</span>
+              <span>Deeppam</span>
+            </div>
           </div>
         </div>
       </section>
 
       {/* 2. Assurance Strip */}
-      <div className="assurance-row">
-        <span><ShieldCheck size={17} /> Direct Manufacturer Sealed Supply</span>
-        <span><Truck size={17} /> Wholesale Agency &amp; Retail Distribution</span>
-        <span><Sparkles size={17} /> Six Verified Regional Brand Families</span>
-        <span><PackageCheck size={17} /> Temperature &amp; Hygiene Controlled Warehouse</span>
+      <div className="assurance-strip">
+        <div className="container assurance-inner">
+          <span><ShieldCheck size={18} /> Direct Manufacturer Sealed Supply</span>
+          <span><Truck size={18} /> Wholesale Agency &amp; Retail Distribution</span>
+          <span><Sparkles size={18} /> Six Verified Regional Brand Families</span>
+          <span><PackageCheck size={18} /> Temperature &amp; Hygiene Controlled Warehouse</span>
+        </div>
       </div>
 
       {/* 3. Polished Brand Showcase */}
@@ -221,16 +247,18 @@ export function HomePage() {
 
 function Newsletter() {
   return (
-    <section className="newsletter">
-      <div>
-        <p className="eyebrow light">Trade &amp; Catalogue Updates</p>
-        <h2>Connect with Sree Annapurna Agency.</h2>
-        <p>Enquire about new seasonal product arrivals, distributor bulk rates, and festival stock allocations.</p>
+    <section className="container">
+      <div className="newsletter">
+        <div>
+          <p className="eyebrow">Trade &amp; Catalogue Updates</p>
+          <h2>Connect with Sree Annapurna Agency</h2>
+          <p>Enquire about new seasonal product arrivals, distributor bulk rates, and festival stock allocations.</p>
+        </div>
+        <Link to="/wholesale" className="button button-primary">
+          Enquire for Wholesale Distribution
+          <ArrowRight size={16} />
+        </Link>
       </div>
-      <Link to="/wholesale" className="button button-cream">
-        Enquire for Distribution
-        <ArrowRight size={16} />
-      </Link>
     </section>
   )
 }

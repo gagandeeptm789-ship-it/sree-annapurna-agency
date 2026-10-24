@@ -29,13 +29,31 @@ if (process.env.NODE_ENV !== 'production') {
 
 // System Health Check
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const hasUri = Boolean(process.env.MONGODB_URI && process.env.MONGODB_URI.trim());
+
+  let dbStatus = 'disconnected';
+  if (isDbConnected) {
+    dbStatus = 'connected';
+  } else if (!hasUri) {
+    dbStatus = 'not_configured_local_fallback';
+  } else {
+    dbStatus = 'connection_failed_or_offline';
+  }
+
   res.json({
     status: 'ok',
     service: 'Sree Annapurna Agency Backend API',
-    uptime: process.uptime(),
+    uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    database: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected/fallback',
+    port: process.env.PORT || 5000,
+    database: {
+      connected: isDbConnected,
+      status: dbStatus,
+      host: isDbConnected ? mongoose.connection.host : null,
+    },
   });
 });
 

@@ -60,7 +60,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="product-card">
-      <Link to={`/product/${product.id}`} className="product-image-wrap">
+      <Link to={`/product/${product.id}`} className="product-image-wrap" aria-label={`View details of ${product.name}`}>
         <ImageAsset
           src={product.image}
           alt={product.name}
@@ -94,7 +94,7 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="product-card-bottom">
           <div className="product-pricing-block">
             <strong>{product.price > 0 ? money(product.price) : 'Trade Enquiries'}</strong>
-            {product.price > 0 && <small className="unit-label">Retail / Unit Price</small>}
+            {product.price > 0 && <span className="unit-label">MRP / Unit Price</span>}
           </div>
 
           <div className="product-card-actions">
@@ -108,13 +108,13 @@ export function ProductCard({ product }: { product: Product }) {
               </Link>
             )}
             <button
-              className="button button-dark button-small add-to-basket-btn"
+              className="button button-primary button-small add-to-basket-btn"
               aria-label={`Add ${product.name} to cart`}
               disabled={unavailable}
               onClick={() => addToCart(product)}
             >
               {unavailable ? <Check size={14} /> : <Plus size={14} />}
-              <span>{unavailable ? 'Unavailable' : 'Add'}</span>
+              <span>{unavailable ? 'Unavailable' : 'Add to Cart'}</span>
             </button>
           </div>
         </div>
@@ -123,16 +123,26 @@ export function ProductCard({ product }: { product: Product }) {
   )
 }
 
-export function SectionTitle({ kicker, title, action, to = '/shop' }: { kicker?: string; title: string; action?: string; to?: string }) {
+export function SectionTitle({
+  kicker,
+  title,
+  action,
+  to = '/shop',
+}: {
+  kicker?: string
+  title: string
+  action?: string
+  to?: string
+}) {
   return (
     <div className="section-title">
-      <div>
+      <div className="section-title-copy">
         {kicker && <p className="eyebrow">{kicker}</p>}
         <h2>{title}</h2>
       </div>
       {action && (
-        <Link className="text-link" to={to}>
-          {action}
+        <Link className="section-action-link" to={to}>
+          <span>{action}</span>
           <ArrowRight size={16} />
         </Link>
       )}
@@ -140,14 +150,26 @@ export function SectionTitle({ kicker, title, action, to = '/shop' }: { kicker?:
   )
 }
 
-export function EmptyState({ title, text, link = '/shop' }: { title: string; text: string; link?: string }) {
+export function EmptyState({
+  title,
+  text,
+  link = '/shop',
+  actionText = 'Browse Product Catalogue',
+}: {
+  title: string
+  text: string
+  link?: string
+  actionText?: string
+}) {
   return (
     <div className="empty-state">
-      <span className="empty-icon"><ShoppingBag size={24} /></span>
+      <span className="empty-icon">
+        <ShoppingBag size={24} />
+      </span>
       <h3>{title}</h3>
       <p>{text}</p>
-      <Link className="button button-dark" to={link}>
-        Explore the shop
+      <Link className="button button-primary" to={link}>
+        {actionText}
         <ArrowRight size={16} />
       </Link>
     </div>
@@ -156,5 +178,10 @@ export function EmptyState({ title, text, link = '/shop' }: { title: string; tex
 
 export function Notice() {
   const { notice } = useStore()
-  return notice ? <div role="status" className="toast"><Check size={17} />{notice}</div> : null
+  return notice ? (
+    <div role="status" className="toast" aria-live="polite">
+      <Check size={18} />
+      <span>{notice}</span>
+    </div>
+  ) : null
 }

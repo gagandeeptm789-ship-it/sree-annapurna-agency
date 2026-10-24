@@ -75,14 +75,29 @@ business app/
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 One-Command Full-Stack Startup (From Project Root)
 
-### 1. Convenience Commands (From Project Root)
+To start both the **Frontend** and **Backend** simultaneously with a single command:
+
+```powershell
+npm run dev
+```
+*(Or `npm.cmd run dev`)*
+
+This launches:
+- 🌐 **Frontend Storefront**: [http://localhost:5173](http://localhost:5173) (Vite + React)
+- 📡 **Backend REST API**: [http://localhost:5000](http://localhost:5000) (Express 5)
+- 🩺 **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+---
+
+### Root Convenience Commands
 
 | Command | Action |
 | :--- | :--- |
-| `npm run dev:frontend` | Starts Vite frontend dev server at `http://localhost:5173` |
-| `npm run dev:backend` | Starts Express backend server with hot-reload at `http://localhost:5000` |
+| `npm run dev` | **Starts both Frontend (`:5173`) and Backend (`:5000`) concurrently** |
+| `npm run dev:frontend` | Starts only the Vite frontend dev server at `http://localhost:5173` |
+| `npm run dev:backend` | Starts only the Express backend server with hot-reload at `http://localhost:5000` |
 | `npm run build:frontend` | Compiles TypeScript and builds optimized production bundle in `frontend/dist/` |
 | `npm run start:backend` | Starts production backend Express server |
 | `npm run seed:db` | Populates MongoDB Atlas with all 33 products and 6 brands |

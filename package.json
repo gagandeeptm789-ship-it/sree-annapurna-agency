@@ -4,6 +4,7 @@
   "private": true,
   "description": "Sree Annapurna Agency - FMCG Wholesale & Distribution Platform",
   "scripts": {
+    "dev": "concurrently -k --names \"BACKEND,FRONTEND\" -c \"blue.bold,green.bold\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "build:frontend": "npm --prefix frontend run build",
@@ -21,5 +22,8 @@
     "mongodb"
   ],
   "author": "Sree Annapurna Agency",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
 }

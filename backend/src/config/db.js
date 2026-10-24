@@ -15,7 +15,9 @@ const connectDB = async () => {
     console.log(`[MongoDB] Connected to database: ${conn.connection.name} (Host: ${conn.connection.host})`);
     return conn;
   } catch (err) {
-    console.error(`[MongoDB] Connection error: ${err.message}`);
+    // Sanitize message so credentials are never leaked in logs
+    const safeMsg = (err.message || '').replace(/mongodb(\+srv)?:\/\/[^@]+@/gi, 'mongodb$1://***:***@');
+    console.error(`[MongoDB] Connection error: ${safeMsg}`);
     // Do not crash server in development if DB is temporarily unreachable
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);
