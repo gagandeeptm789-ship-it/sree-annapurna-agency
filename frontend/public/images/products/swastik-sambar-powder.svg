@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    
+    <radialGradient id="studio-bg" cx="50%" cy="40%" r="65%" fx="45%" fy="30%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#faf7f0"/>
+      <stop offset="100%" stop-color="#ede5d5"/>
+    </radialGradient>
+    <filter id="contact-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9"/>
+    </filter>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="gold-foil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf1c8"/>
+      <stop offset="35%" stop-color="#d4af37"/>
+      <stop offset="70%" stop-color="#aa8010"/>
+      <stop offset="100%" stop-color="#e8cf65"/>
+    </linearGradient>
+    <linearGradient id="foil-sheen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.0"/>
+      <stop offset="25%" stop-color="white" stop-opacity="0.35"/>
+      <stop offset="45%" stop-color="white" stop-opacity="0.05"/>
+      <stop offset="80%" stop-color="white" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <linearGradient id="pouch-grad-swastik-sambar-powder" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#991b1b"/>
+      <stop offset="25%" stop-color="#f59e0b"/>
+      <stop offset="65%" stop-color="#991b1b"/>
+      <stop offset="100%" stop-color="#991b1b" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="hdr-grad-swastik-sambar-powder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Studio Surface Backdrop -->
+  <rect width="500" height="500" fill="url(#studio-bg)"/>
+  
+  <!-- Soft Studio Ground Shadow -->
+  <ellipse cx="250" cy="432" rx="145" ry="17" fill="rgba(35, 25, 15, 0.22)" filter="url(#contact-shadow)"/>
+  <ellipse cx="250" cy="430" rx="100" ry="9" fill="rgba(25, 18, 10, 0.32)" filter="url(#contact-shadow)"/>
+
+  <!-- POUCH 3D BODY -->
+  <!-- Top Heat-Sealed Crimp (with micro-ridges) -->
+  <path d="M 132 82 L 368 82 L 362 108 L 138 108 Z" fill="#991b1b" stroke="#1e293b" stroke-width="1.2"/>
+  <rect x="135" y="82" width="230" height="26" fill="url(#gold-foil)" opacity="0.85"/>
+  <!-- Crimp texture micro-lines -->
+  
+    <line x1="142" y1="83" x2="142" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="150" y1="83" x2="150" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="158" y1="83" x2="158" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="166" y1="83" x2="166" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="174" y1="83" x2="174" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="182" y1="83" x2="182" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="190" y1="83" x2="190" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="198" y1="83" x2="198" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="206" y1="83" x2="206" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="214" y1="83" x2="214" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="222" y1="83" x2="222" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="230" y1="83" x2="230" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="238" y1="83" x2="238" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="246" y1="83" x2="246" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="254" y1="83" x2="254" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="262" y1="83" x2="262" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="270" y1="83" x2="270" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="278" y1="83" x2="278" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="286" y1="83" x2="286" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="294" y1="83" x2="294" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="302" y1="83" x2="302" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="310" y1="83" x2="310" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="318" y1="83" x2="318" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="326" y1="83" x2="326" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="334" y1="83" x2="334" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="342" y1="83" x2="342" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="350" y1="83" x2="350" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+    <line x1="358" y1="83" x2="358" y2="107" stroke="#78350f" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Euro-slot / Peg hole in top seal -->
+  <path d="M 235 94 C 235 91, 238 88, 243 88 L 257 88 C 262 88, 265 91, 265 94 L 265 95 C 265 98, 262 101, 257 101 L 243 101 C 238 101, 235 98, 235 95 Z" fill="#faf7f0" stroke="#78350f" stroke-width="1"/>
+  <!-- Tear notches on sides of top seal -->
+  <polygon points="132,108 140,111 132,114" fill="#faf7f0"/>
+  <polygon points="368,108 360,111 368,114" fill="#faf7f0"/>
+
+  <!-- Main Pillow Pouch Body (with realistic curved 3D lighting) -->
+  <path d="M 138 108 C 122 180, 120 320, 142 410 C 180 422, 320 422, 358 410 C 380 320, 378 180, 362 108 Z" fill="url(#pouch-grad-swastik-sambar-powder)" stroke="#0f172a" stroke-width="1.5"/>
+
+  <!-- Foil Sheen / 3D Specular Highlight layer -->
+  <path d="M 148 112 C 135 180, 134 320, 150 405 C 190 415, 310 415, 350 405 C 366 320, 365 180, 352 112 Z" fill="url(#foil-sheen)"/>
+
+  <!-- Bottom Heat Seal / Stand-up Gusset Base -->
+  <path d="M 142 410 C 180 422, 320 422, 358 410 L 354 424 C 320 434, 180 434, 146 424 Z" fill="#1e293b" opacity="0.4"/>
+  <path d="M 146 408 L 354 408 L 350 418 L 150 418 Z" fill="url(#gold-foil)" opacity="0.75"/>
+
+  <!-- POUCH GRAPHIC ARTWORK & BRANDING -->
+  <!-- Top Brand Header Block -->
+  <g transform="translate(145, 124)">
+    <rect x="0" y="0" width="210" height="42" rx="4" fill="#ffffff" opacity="0.95"/>
+    <rect x="0" y="0" width="210" height="42" rx="4" fill="none" stroke="#d4af37" stroke-width="1.5"/>
+    <text x="105" y="22" font-family="'Poppins', sans-serif" font-size="16" font-weight="800" fill="#143e2b" text-anchor="middle" letter-spacing="2">SWASTIK</text>
+    <text x="105" y="34" font-family="'Inter', sans-serif" font-size="7.5" font-weight="700" fill="#b45309" text-anchor="middle" letter-spacing="1">AUTHENTIC QUALITY ASSURED</text>
+  </g>
+
+  <!-- Central Product Feature Card / Vignette -->
+  <g transform="translate(150, 178)">
+    <!-- White Card Background for High Readability -->
+    <rect x="0" y="0" width="200" height="156" rx="8" fill="#ffffff" stroke="#e2d8c3" stroke-width="1.5"/>
+    
+    <!-- Decorative Category Ribbon -->
+    <rect x="15" y="10" width="170" height="20" rx="3" fill="#991b1b"/>
+    <text x="100" y="24" font-family="'Inter', sans-serif" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1.2">TRADITIONAL SPICE POWDERS</text>
+
+    <!-- Product Title -->
+    <text x="100" y="52" font-family="'Poppins', sans-serif" font-size="14" font-weight="800" fill="#1c1917" text-anchor="middle">SAMBAR POWDER</text>
+    <line x1="40" y1="60" x2="160" y2="60" stroke="#d4af37" stroke-width="1.5"/>
+
+    <!-- Subtitle / Formulation notes -->
+    <text x="100" y="74" font-family="'Inter', sans-serif" font-size="8" font-weight="600" fill="#57534e" text-anchor="middle">Roasted Coriander & Dal Blend</text>
+
+    <!-- Center Icon Artwork (Aromatic Bowl or Spice Motif) -->
+    <g transform="translate(100, 106)">
+      
+    <path d="M -22 -4 C -22 16, 22 16, 22 -4 Z" fill="#475569" stroke="#1e293b" stroke-width="1.5"/>
+    <ellipse cx="0" cy="-4" rx="22" ry="6" fill="#e2e8f0"/>
+    <line x1="-12" y1="-14" x2="4" y2="-4" stroke="#ca8a04" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="2" cy="-4" r="2" fill="#dc2626"/>
+    <circle cx="-4" cy="-3" r="1.5" fill="#16a34a"/>
+  
+    </g>
+
+    <!-- Freshness / Aroma Seal -->
+    <g transform="translate(24, 126)">
+      <circle cx="10" cy="10" r="10" fill="url(#gold-foil)"/>
+      <text x="10" y="13" font-family="'Inter', sans-serif" font-size="5.5" font-weight="800" fill="#78350f" text-anchor="middle">SEALED</text>
+    </g>
+
+    <!-- Veg Badge -->
+    
+    <g transform="translate(160, 126)">
+      <rect x="0" y="0" width="16" height="16" rx="2" fill="#ffffff" stroke="#238838" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="4.5" fill="#238838"/>
+    </g>
+  
+  </g>
+
+  <!-- Bottom Net Wt Banner & Barcode Badge -->
+  <g transform="translate(150, 348)">
+    <rect x="0" y="0" width="200" height="42" rx="6" fill="#ffffff" opacity="0.95" stroke="#d4af37" stroke-width="1"/>
+    <text x="100" y="18" font-family="'Inter', sans-serif" font-size="8" font-weight="700" fill="#1e293b" text-anchor="middle">FACTORY FRESH · MOISTURE RESISTANT</text>
+    
+    <!-- Big Pack Size Tag -->
+    <rect x="45" y="23" width="110" height="15" rx="3" fill="#143e2b"/>
+    <text x="100" y="34" font-family="'Inter', sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">NET WEIGHT: 200 g</text>
+  </g>
+</svg>

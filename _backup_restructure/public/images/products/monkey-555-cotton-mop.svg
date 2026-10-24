@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    
+    <radialGradient id="studio-bg" cx="50%" cy="40%" r="65%" fx="45%" fy="30%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#faf7f0"/>
+      <stop offset="100%" stop-color="#ede5d5"/>
+    </radialGradient>
+    <filter id="contact-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9"/>
+    </filter>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="gold-foil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf1c8"/>
+      <stop offset="35%" stop-color="#d4af37"/>
+      <stop offset="70%" stop-color="#aa8010"/>
+      <stop offset="100%" stop-color="#e8cf65"/>
+    </linearGradient>
+    <linearGradient id="foil-sheen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.0"/>
+      <stop offset="25%" stop-color="white" stop-opacity="0.35"/>
+      <stop offset="45%" stop-color="white" stop-opacity="0.05"/>
+      <stop offset="80%" stop-color="white" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+
+  </defs>
+
+  <rect width="500" height="500" fill="url(#studio-bg)"/>
+  <ellipse cx="250" cy="432" rx="140" ry="16" fill="rgba(35, 25, 15, 0.2)" filter="url(#contact-shadow)"/>
+
+  <!-- HANDLE ASSEMBLY -->
+  <rect x="242" y="50" width="16" height="150" rx="3" fill="#dc2626" stroke="#991b1b" stroke-width="1.5"/>
+  <line x1="246" y1="50" x2="246" y2="200" stroke="#fca5a5" stroke-width="2"/>
+
+  <!-- MOP HEAD MOLDED SOCKET (Heavy-Duty Virgin Plastic Clamp) -->
+  <path d="M 220 200 L 280 200 L 295 240 L 205 240 Z" fill="#15803d" stroke="#052e16" stroke-width="1.5"/>
+  <rect x="228" y="195" width="44" height="10" rx="2" fill="#166534"/>
+
+  <!-- Branded Badge on Socket -->
+  <rect x="220" y="210" width="60" height="20" rx="3" fill="#ffffff"/>
+  <text x="250" y="222" font-family="'Poppins', sans-serif" font-size="8" font-weight="800" fill="#dc2626" text-anchor="middle">MONKEY 555</text>
+  <text x="250" y="228" font-family="'Inter', sans-serif" font-size="5" font-weight="700" fill="#15803d" text-anchor="middle">COTTON MOP</text>
+
+  <!-- PURE WHITE LOOPED COTTON YARN STRINGS -->
+  <g id="cotton-yarn">
+    <!-- Soft background mass for volume -->
+    <path d="M 210 240 L 290 240 L 330 420 C 290 430, 210 430, 170 420 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+    
+    <!-- Individual looping thick yarn strings -->
+    
+      <path d="M 223 240 C 214 320, 187 380, 187 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 223 240 C 214 320, 187 380, 187 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 229 240 C 222 320, 201 380, 201 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 229 240 C 222 320, 201 380, 201 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 235 240 C 230 320, 215 380, 215 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 235 240 C 230 320, 215 380, 215 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 241 240 C 238 320, 229 380, 229 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 241 240 C 238 320, 229 380, 229 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 247 240 C 246 320, 243 380, 243 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 247 240 C 246 320, 243 380, 243 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 253 240 C 254 320, 257 380, 257 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 253 240 C 254 320, 257 380, 257 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 259 240 C 262 320, 271 380, 271 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 259 240 C 262 320, 271 380, 271 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 265 240 C 270 320, 285 380, 285 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 265 240 C 270 320, 285 380, 285 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 271 240 C 278 320, 299 380, 299 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 271 240 C 278 320, 299 380, 299 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+      <path d="M 277 240 C 286 320, 313 380, 313 420" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M 277 240 C 286 320, 313 380, 313 420" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    
+
+    <!-- Looped ends at bottom -->
+    
+      <ellipse cx="185" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="200.6" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="216.2" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="231.8" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="247.4" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="263" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="278.6" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="294.2" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+      <ellipse cx="309.8" cy="420" rx="7" ry="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+  </g>
+
+  <!-- Super Absorbent Feature Tag -->
+  <g transform="translate(320, 160)">
+    <rect x="0" y="0" width="85" height="42" rx="5" fill="#ffffff" stroke="#15803d" stroke-width="1.5"/>
+    <text x="42" y="16" font-family="'Inter', sans-serif" font-size="8" font-weight="800" fill="#dc2626" text-anchor="middle">HIGH ABSORB</text>
+    <text x="42" y="27" font-family="'Inter', sans-serif" font-size="7" font-weight="600" fill="#334155" text-anchor="middle">100% Cotton Yarn</text>
+    <text x="42" y="36" font-family="'Inter', sans-serif" font-size="6" font-weight="700" fill="#15803d" text-anchor="middle">Durable Socket</text>
+  </g>
+</svg>

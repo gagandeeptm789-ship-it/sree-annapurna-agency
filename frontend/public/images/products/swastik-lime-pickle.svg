@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    
+    <radialGradient id="studio-bg" cx="50%" cy="40%" r="65%" fx="45%" fy="30%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#faf7f0"/>
+      <stop offset="100%" stop-color="#ede5d5"/>
+    </radialGradient>
+    <filter id="contact-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9"/>
+    </filter>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="gold-foil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf1c8"/>
+      <stop offset="35%" stop-color="#d4af37"/>
+      <stop offset="70%" stop-color="#aa8010"/>
+      <stop offset="100%" stop-color="#e8cf65"/>
+    </linearGradient>
+    <linearGradient id="foil-sheen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.0"/>
+      <stop offset="25%" stop-color="white" stop-opacity="0.35"/>
+      <stop offset="45%" stop-color="white" stop-opacity="0.05"/>
+      <stop offset="80%" stop-color="white" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <!-- Zesty Yellow/Green Lid Gradient -->
+    <linearGradient id="lime-lid-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b48206"/>
+      <stop offset="20%" stop-color="#eab308"/>
+      <stop offset="50%" stop-color="#fef08a"/>
+      <stop offset="80%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#9a6e04"/>
+    </linearGradient>
+    <!-- Lime Pickle Contents Gradient (Tangy yellow-mustard & green cured lime) -->
+    <linearGradient id="lime-gravy" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#854d0e"/>
+      <stop offset="30%" stop-color="#ca8a04"/>
+      <stop offset="70%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#713f12"/>
+    </linearGradient>
+    <!-- Glass Specular -->
+    <linearGradient id="glass-specular" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="75%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Studio Surface Backdrop -->
+  <rect width="500" height="500" fill="url(#studio-bg)"/>
+  
+  <!-- Studio Contact Shadow -->
+  <ellipse cx="250" cy="428" rx="135" ry="16" fill="rgba(40, 30, 20, 0.22)" filter="url(#contact-shadow)"/>
+  <ellipse cx="250" cy="426" rx="90" ry="9" fill="rgba(30, 20, 10, 0.35)" filter="url(#contact-shadow)"/>
+
+  <!-- JAR BASE & GLASS BODY -->
+  <rect x="156" y="380" width="188" height="28" rx="14" fill="#d9d4c7" stroke="#b0a896" stroke-width="1.5"/>
+  <rect x="159" y="382" width="182" height="22" rx="11" fill="#edeae1"/>
+
+  <!-- Inner Cured Lime Pickle Gravy -->
+  <path d="M 152 165 C 152 145, 175 140, 195 140 L 305 140 C 325 140, 348 145, 348 165 L 344 382 C 344 394, 330 400, 310 400 L 190 400 C 170 400, 156 394, 156 382 Z" fill="url(#lime-gravy)"/>
+
+  <!-- Visible Lime Wedges / Pieces through Glass -->
+  <!-- Lime wedge 1 (top left) -->
+  <path d="M 166 170 C 180 155, 205 160, 215 180 C 195 195, 175 195, 166 170 Z" fill="#65a30d" stroke="#365314" stroke-width="1.2"/>
+  <path d="M 175 174 Q 190 170 205 180" stroke="#bef264" stroke-width="2.5" fill="none"/>
+  <!-- Lime wedge 2 (top right) -->
+  <path d="M 285 168 C 305 158, 328 170, 335 195 C 315 205, 295 195, 285 168 Z" fill="#eab308" stroke="#854d0e" stroke-width="1.2"/>
+  <path d="M 295 175 Q 315 178 325 190" stroke="#fef08a" stroke-width="2" fill="none"/>
+  <!-- Chili & mustard seeds in lime pickle -->
+  <circle cx="180" cy="195" r="2" fill="#1c1917"/>
+  <circle cx="205" cy="188" r="2.5" fill="#b91c1c"/>
+  <circle cx="280" cy="185" r="2" fill="#1c1917"/>
+  <circle cx="310" cy="195" r="2.5" fill="#b91c1c"/>
+  <circle cx="325" cy="175" r="2" fill="#1c1917"/>
+  <!-- Lime wedges lower -->
+  <path d="M 168 340 C 190 330, 215 345, 218 375 C 195 385, 175 370, 168 340 Z" fill="#84cc16" stroke="#365314" stroke-width="1.2"/>
+  <path d="M 285 345 C 310 330, 330 350, 332 378 C 310 385, 290 375, 285 345 Z" fill="#eab308" stroke="#854d0e" stroke-width="1.2"/>
+  <circle cx="240" cy="355" r="2.5" fill="#1c1917"/>
+  <circle cx="260" cy="370" r="2.5" fill="#b91c1c"/>
+
+  <!-- Glass jar outer contour & gloss -->
+  <path d="M 150 160 C 150 135, 175 130, 200 130 L 300 130 C 325 130, 350 135, 350 160 L 346 385 C 346 398, 330 404, 308 404 L 192 404 C 170 404, 154 398, 154 385 Z" fill="none" stroke="#cfc7b4" stroke-width="2.5"/>
+
+  <!-- Specular vertical glass highlights -->
+  <path d="M 160 160 L 164 382" stroke="url(#glass-specular)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 172 165 L 174 380" stroke="#ffffff" stroke-width="2" stroke-opacity="0.75" stroke-linecap="round"/>
+  <path d="M 334 165 L 332 380" stroke="#ffffff" stroke-width="3" stroke-opacity="0.45" stroke-linecap="round"/>
+
+  <!-- BRAND WRAP-AROUND LABEL -->
+  <g transform="translate(162, 210)">
+    <rect x="0" y="0" width="176" height="128" rx="5" fill="#fffdfa" stroke="#d5cdbc" stroke-width="1.5"/>
+    
+    <!-- Top Green Heritage Band -->
+    <path d="M 0 5 C 0 2, 2 0, 5 0 L 171 0 C 174 0, 176 2, 176 5 L 176 34 L 0 34 Z" fill="#174d35"/>
+    <line x1="0" y1="34" x2="176" y2="34" stroke="#d4af37" stroke-width="1.5"/>
+
+    <text x="88" y="16" font-family="'Poppins', sans-serif" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">SWASTIK</text>
+    <text x="88" y="27" font-family="'Inter', sans-serif" font-size="6.5" font-weight="700" fill="#d9a441" text-anchor="middle" letter-spacing="1.2">HERITAGE PICKLES</text>
+
+    <!-- Product Name Section -->
+    <rect x="10" y="42" width="156" height="26" rx="3" fill="#fefce8" stroke="#ca8a04" stroke-width="1"/>
+    <text x="88" y="58" font-family="'Poppins', sans-serif" font-size="12" font-weight="800" fill="#854d0e" text-anchor="middle" letter-spacing="0.5">LIME PICKLE</text>
+
+    <text x="88" y="77" font-family="'Inter', sans-serif" font-size="7" font-weight="600" fill="#44403c" text-anchor="middle">Zesty Cured Lemons in Mustard Oil</text>
+    <text x="88" y="87" font-family="'Inter', sans-serif" font-size="6" font-weight="500" fill="#78716c" text-anchor="middle">Authentic Tangy &amp; Spiced Recipe</text>
+
+    <!-- Lime wedge motif -->
+    <g transform="translate(78, 92)">
+      <circle cx="10" cy="11" r="9" fill="#84cc16" stroke="#4d7c0f" stroke-width="0.8"/>
+      <circle cx="10" cy="11" r="7" fill="#fef08a"/>
+      <line x1="10" y1="4" x2="10" y2="18" stroke="#65a30d" stroke-width="0.8"/>
+      <line x1="3" y1="11" x2="17" y2="11" stroke="#65a30d" stroke-width="0.8"/>
+    </g>
+
+    
+    <g transform="translate(8, 102)">
+      <rect x="0" y="0" width="16" height="16" rx="2" fill="#ffffff" stroke="#238838" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="4.5" fill="#238838"/>
+    </g>
+  
+    <text x="164" y="114" font-family="'Inter', sans-serif" font-size="7.5" font-weight="700" fill="#174d35" text-anchor="end">Net Wt: 300 g</text>
+  </g>
+
+  <!-- JAR NECK & THREAD -->
+  <rect x="180" y="124" width="140" height="12" rx="3" fill="#ded8cc" stroke="#b0a896" stroke-width="1.5"/>
+
+  <!-- YELLOW/GREEN TWIST-OFF LID -->
+  <g id="jar-lid">
+    <rect x="162" y="122" width="176" height="5" rx="2" fill="rgba(0,0,0,0.2)"/>
+    <rect x="164" y="82" width="172" height="42" rx="5" fill="url(#lime-lid-grad)" stroke="#854d0e" stroke-width="1.5"/>
+    <ellipse cx="250" cy="84" rx="86" ry="10" fill="#fef08a"/>
+    <ellipse cx="250" cy="83" rx="80" ry="7" fill="#ffffff" opacity="0.6"/>
+    <!-- Lid Ribs -->
+    
+      <line x1="176" y1="88" x2="176" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="178" y1="88" x2="178" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="192" y1="88" x2="192" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="194" y1="88" x2="194" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="208" y1="88" x2="208" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="210" y1="88" x2="210" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="224" y1="88" x2="224" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="226" y1="88" x2="226" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="240" y1="88" x2="240" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="242" y1="88" x2="242" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="256" y1="88" x2="256" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="258" y1="88" x2="258" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="272" y1="88" x2="272" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="274" y1="88" x2="274" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="288" y1="88" x2="288" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="290" y1="88" x2="290" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="304" y1="88" x2="304" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="306" y1="88" x2="306" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+      <line x1="320" y1="88" x2="320" y2="120" stroke="#a16207" stroke-width="2"/>
+      <line x1="322" y1="88" x2="322" y2="120" stroke="#fef9c3" stroke-width="1"/>
+    
+    <!-- Gold Rim -->
+    <rect x="168" y="120" width="164" height="4" fill="url(#gold-foil)"/>
+  </g>
+</svg>
