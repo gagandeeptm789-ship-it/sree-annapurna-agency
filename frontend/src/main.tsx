@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './app/App'
 import { StoreProvider } from './context/StoreContext'
 import './styles.css'
+import './storefront.css'
+import './admin.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

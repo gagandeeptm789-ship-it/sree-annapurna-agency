@@ -112,7 +112,7 @@
     <text x="68" y="171" font-family="'Poppins', sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">NET: 450 ml</text>
   </g>
 
-  <!-- BOTTLE NECK & THREADS -->
+  <!-- BOTTLE NECK &amp; THREADS -->
   <rect x="220" y="115" width="60" height="20" rx="3" fill="#ded8cc" stroke="#b45309" stroke-width="1"/>
   <line x1="222" y1="125" x2="278" y2="125" stroke="#b45309" stroke-width="1.5"/>
 

@@ -49,7 +49,7 @@
   <!-- Foaming Wash Waves / Splashes -->
   <path d="M 134 260 Q 250 200 366 260 L 370 410 C 330 422, 170 422, 130 410 Z" fill="#ffffff" opacity="0.95"/>
 
-  <!-- Washing Bubbles & Active Oxygen Graphic -->
+  <!-- Washing Bubbles &amp; Active Oxygen Graphic -->
   <circle cx="210" cy="270" r="14" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
   <circle cx="280" cy="255" r="18" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
   <circle cx="250" cy="290" r="24" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>

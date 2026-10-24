@@ -46,7 +46,7 @@
     <path d="M -7 -18 L 7 -18 L 7 -7 L 18 -7 L 18 7 L 7 7 L 7 18 L -7 18 L -7 7 L -18 7 L -18 -7 L -7 -7 Z" fill="#0284c7"/>
   </g>
 
-  <!-- Brand & Product Title -->
+  <!-- Brand &amp; Product Title -->
   <text x="250" y="222" font-family="'Poppins', sans-serif" font-size="18" font-weight="800" fill="#0f172a" text-anchor="middle">MONKEY 555</text>
   <rect x="160" y="235" width="180" height="26" rx="4" fill="#0284c7"/>
   <text x="250" y="253" font-family="'Poppins', sans-serif" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">BLEACHING POWDER</text>

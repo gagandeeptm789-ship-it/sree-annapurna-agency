@@ -125,7 +125,7 @@
   <path d="M 142 410 C 180 422, 320 422, 358 410 L 354 424 C 320 434, 180 434, 146 424 Z" fill="#1e293b" opacity="0.4"/>
   <path d="M 146 408 L 354 408 L 350 418 L 150 418 Z" fill="url(#gold-foil)" opacity="0.75"/>
 
-  <!-- POUCH GRAPHIC ARTWORK & BRANDING -->
+  <!-- POUCH GRAPHIC ARTWORK &amp; BRANDING -->
   <!-- Top Brand Header Block -->
   <g transform="translate(145, 124)">
     <rect x="0" y="0" width="210" height="42" rx="4" fill="#ffffff" opacity="0.95"/>
@@ -176,7 +176,7 @@
   
   </g>
 
-  <!-- Bottom Net Wt Banner & Barcode Badge -->
+  <!-- Bottom Net Wt Banner &amp; Barcode Badge -->
   <g transform="translate(150, 348)">
     <rect x="0" y="0" width="200" height="42" rx="6" fill="#ffffff" opacity="0.95" stroke="#d4af37" stroke-width="1"/>
     <text x="100" y="18" font-family="'Inter', sans-serif" font-size="8" font-weight="700" fill="#1e293b" text-anchor="middle">FACTORY FRESH · MOISTURE RESISTANT</text>

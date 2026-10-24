@@ -10,14 +10,14 @@
   <!-- Top Agency Header -->
   <g transform="translate(42, 44)">
     <rect x="0" y="0" width="160" height="26" rx="4" fill="#9C341F15"/>
-    <text x="12" y="17" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#9C341F" letter-spacing="1">COASTAL & REGIONAL SPICES</text>
+    <text x="12" y="17" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#9C341F" letter-spacing="1">COASTAL &amp; REGIONAL SPICES</text>
     <text x="716" y="17" font-family="'Inter', sans-serif" font-size="10" font-weight="600" fill="#757064" text-anchor="end">AUTHENTIC FMCG PARTNER</text>
   </g>
 
-  <!-- Brand Typography & Heritage Hallmark -->
+  <!-- Brand Typography &amp; Heritage Hallmark -->
   <g transform="translate(42, 116)">
     <text x="0" y="0" font-family="'Poppins', 'Inter', sans-serif" font-size="36" font-weight="700" fill="#14261c">Aruna Masala</text>
-    <text x="0" y="32" font-family="'Inter', sans-serif" font-size="15" font-weight="500" fill="#525d56">Coastal Flavour & Signature Masalas</text>
+    <text x="0" y="32" font-family="'Inter', sans-serif" font-size="15" font-weight="500" fill="#525d56">Coastal Flavour &amp; Signature Masalas</text>
   </g>
 
   <!-- Horizontal Divider -->
@@ -32,7 +32,7 @@
         <g transform="translate(0, 0)">
           <rect x="0" y="0" width="340" height="34" rx="4" fill="#faf8f3" stroke="#e8e2d5" stroke-width="1"/>
           <circle cx="16" cy="17" r="4" fill="#9C341F"/>
-          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Signature Chicken & Mutton Masalas</text>
+          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Signature Chicken &amp; Mutton Masalas</text>
         </g>
       
         <g transform="translate(360, 0)">
@@ -44,13 +44,13 @@
         <g transform="translate(0, 44)">
           <rect x="0" y="0" width="340" height="34" rx="4" fill="#faf8f3" stroke="#e8e2d5" stroke-width="1"/>
           <circle cx="16" cy="17" r="4" fill="#9C341F"/>
-          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Egg Masala & Biryani Spice Pouches</text>
+          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Egg Masala &amp; Biryani Spice Pouches</text>
         </g>
       
         <g transform="translate(360, 44)">
           <rect x="0" y="0" width="340" height="34" rx="4" fill="#faf8f3" stroke="#e8e2d5" stroke-width="1"/>
           <circle cx="16" cy="17" r="4" fill="#9C341F"/>
-          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Roasted Vermicelli & Dessert Mixes</text>
+          <text x="30" y="21" font-family="'Inter', sans-serif" font-size="12" font-weight="600" fill="#243029">Roasted Vermicelli &amp; Dessert Mixes</text>
         </g>
       
     </g>
@@ -62,7 +62,7 @@
     <circle cx="24" cy="7" r="8" fill="#174d35"/>
     <text x="24" y="11" font-family="'Inter', sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">✓</text>
     <text x="44" y="11" font-family="'Inter', sans-serif" font-size="11" font-weight="700" fill="#174d35">
-      Authorized Carrying & Forwarding Partner · Karnataka & South Zone
+      Authorized Carrying &amp; Forwarding Partner · Karnataka &amp; South Zone
     </text>
     <text x="700" y="11" font-family="'Inter', sans-serif" font-size="10.5" font-weight="600" fill="#58695f" text-anchor="end">
       Genuine Manufacturer Dispatch

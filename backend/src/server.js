@@ -58,9 +58,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount Resource Routes
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/brands', require('./routes/brandRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/invoices', require('./routes/invoiceRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 
 // 404 Route Handler
 app.use((req, res) => {

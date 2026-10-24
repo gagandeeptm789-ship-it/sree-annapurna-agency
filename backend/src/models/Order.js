@@ -25,12 +25,33 @@ const DeliveryDetailsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const PaymentDetailsSchema = new mongoose.Schema(
+  {
+    transactionId: { type: String, default: '' },
+    provider: { type: String, default: '' }, // 'razorpay' | 'sandbox' | 'cod'
+    signature: { type: String, default: '' },
+    paidAt: { type: Date },
+    failureReason: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
 const OrderSchema = new mongoose.Schema(
   {
     orderId: {
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    accessToken: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    isGuest: {
+      type: Boolean,
+      default: false,
       index: true,
     },
     customer: {
@@ -62,10 +83,19 @@ const OrderSchema = new mongoose.Schema(
       default: 'Pending',
       index: true,
     },
+    paymentMethod: {
+      type: String,
+      default: 'Cash on Delivery / Agency Invoice',
+    },
     payment: {
       type: String,
-      enum: ['Pending', 'Paid', 'Refunded'],
+      enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
       default: 'Pending',
+      index: true,
+    },
+    paymentDetails: {
+      type: PaymentDetailsSchema,
+      default: () => ({}),
     },
     date: {
       type: Date,
@@ -78,4 +108,3 @@ const OrderSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model('Order', OrderSchema);
-

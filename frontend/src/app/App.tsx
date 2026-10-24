@@ -17,6 +17,7 @@ import {
   WholesalePage,
 } from '../pages/StorePages'
 import { OwnerGuard } from '../components/OwnerGuard'
+import { OwnerLoginPage } from '../pages/OwnerLoginPage'
 
 const AdminPage = lazy(() => import('../pages/AdminPage').then((module) => ({ default: module.AdminPage })))
 
@@ -46,6 +47,10 @@ export function App() {
         <Route path="404" element={<NotFoundPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+
+      {/* Owner sign-in lives on its own route, outside the customer shell */}
+      <Route path="owner/login" element={<OwnerLoginPage />} />
+      <Route path="owner" element={<OwnerLoginPage />} />
 
       {/* Owner & operations portal protected by OwnerGuard */}
       <Route

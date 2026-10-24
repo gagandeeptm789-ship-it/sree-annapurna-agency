@@ -38,7 +38,7 @@ export interface DemoOrderItem {
 }
 
 export type OrderStatus = 'Pending' | 'Confirmed' | 'Processing' | 'Dispatched' | 'Delivered' | 'Cancelled'
-export type PaymentStatus = 'Pending' | 'Paid' | 'Refunded'
+export type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded'
 
 export interface CustomerDeliveryDetails {
   name: string
@@ -60,6 +60,9 @@ export interface DemoOrder {
   total: number
   status: OrderStatus
   payment: PaymentStatus
+  paymentMethod?: string
+  accessToken?: string
+  isGuest?: boolean
   items?: DemoOrderItem[]
 }
 
@@ -72,6 +75,7 @@ export interface OrderPlacementData {
   city: string
   pincode: string
   notes?: string
+  paymentMethod?: 'COD' | 'ONLINE' | string
 }
 
 export type AdminRecordType = 'customer' | 'distributor' | 'sale' | 'payment' | 'expense' | 'staff' | 'invoice' | 'business'

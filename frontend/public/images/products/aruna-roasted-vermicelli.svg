@@ -52,7 +52,7 @@
   <path d="M 135 92 C 135 85, 142 80, 150 80 L 350 80 C 358 80, 365 85, 365 92 L 365 140 L 135 140 Z" fill="#991b1b"/>
   <rect x="135" y="80" width="230" height="12" fill="url(#gold-foil)" opacity="0.8"/>
 
-  <!-- Brand & Product Title in Header -->
+  <!-- Brand &amp; Product Title in Header -->
   <text x="250" y="110" font-family="'Poppins', sans-serif" font-size="16" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">ARUNA</text>
   <text x="250" y="128" font-family="'Inter', sans-serif" font-size="9" font-weight="700" fill="#fde68a" text-anchor="middle" letter-spacing="1">PREMIUM PANTRY STAPLES</text>
 

@@ -1,28 +1,56 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, AlertTriangle, ArrowRight, BarChart3, Bell, Boxes, BriefcaseBusiness, Building2, ChevronDown, CircleDollarSign, ClipboardList, Eye, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, Search, Settings, ShoppingCart, Truck, Users, X } from 'lucide-react'
+import { Activity, AlertTriangle, ArrowRight, BarChart3, Bell, Boxes, BriefcaseBusiness, Building2, Camera, CircleDollarSign, ClipboardList, Eye, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, Search, Settings, ShoppingCart, Truck, Users, X } from 'lucide-react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useStore } from '../context/StoreContext'
 import type { AdminRecord, AdminRecordType, Brand, DemoOrder, Product } from '../types'
-import { ImageAsset } from '../components/common'
+import { ImageAsset, Notice } from '../components/common'
+import { apiClient } from '../services/apiClient'
 
-const nav = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'products', label: 'Products', icon: Package },
-  { id: 'brands', label: 'Brands & categories', icon: Boxes },
-  { id: 'inventory', label: 'Inventory', icon: ClipboardList },
-  { id: 'orders', label: 'Orders', icon: ShoppingCart },
-  { id: 'customers', label: 'Customers', icon: Users },
-  { id: 'distributors', label: 'Distributors', icon: Building2 },
-  { id: 'sales', label: 'Sales', icon: BarChart3 },
-  { id: 'payments', label: 'Payments', icon: CircleDollarSign },
-  { id: 'expenses', label: 'Expenses', icon: Activity },
-  { id: 'dispatch', label: 'Delivery & dispatch', icon: Truck },
-  { id: 'invoices', label: 'Invoices', icon: FileText },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-  { id: 'staff', label: 'Staff & roles', icon: BriefcaseBusiness },
-  { id: 'settings', label: 'Settings', icon: Settings },
+type NavItem = { id: string; label: string; icon: typeof LayoutDashboard }
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Overview',
+    items: [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }],
+  },
+  {
+    label: 'Catalogue',
+    items: [
+      { id: 'products', label: 'Products', icon: Package },
+      { id: 'brands', label: 'Brands & categories', icon: Boxes },
+      { id: 'inventory', label: 'Inventory', icon: ClipboardList },
+    ],
+  },
+  {
+    label: 'Fulfilment',
+    items: [
+      { id: 'orders', label: 'Orders', icon: ShoppingCart },
+      { id: 'dispatch', label: 'Delivery & dispatch', icon: Truck },
+    ],
+  },
+  {
+    label: 'Records',
+    items: [
+      { id: 'customers', label: 'Customers', icon: Users },
+      { id: 'distributors', label: 'Distributors', icon: Building2 },
+      { id: 'sales', label: 'Sales', icon: BarChart3 },
+      { id: 'payments', label: 'Payments', icon: CircleDollarSign },
+      { id: 'expenses', label: 'Expenses', icon: Activity },
+      { id: 'invoices', label: 'Invoices', icon: FileText },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { id: 'reports', label: 'Reports', icon: BarChart3 },
+      { id: 'staff', label: 'Staff & roles', icon: BriefcaseBusiness },
+      { id: 'settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ]
+
+const nav = navGroups.flatMap((group) => group.items)
 
 const money = (value: number) => `₹${value.toLocaleString('en-IN')}`
 const formatDate = (value: Date) => value.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -65,30 +93,105 @@ export function AdminPage() {
     `${order.id} ${order.customer} ${order.status} ${order.phone ?? ''} ${order.customerEmail ?? ''}`.toLowerCase().includes(search.toLowerCase())), [orders, search])
   const filteredRecords = useMemo(() => records.filter((record) =>
     `${record.name} ${record.contact} ${record.details}`.toLowerCase().includes(search.toLowerCase())), [records, search])
+  const awaitingFulfilment = orders.filter((order) =>
+    order.status === 'Pending' || order.status === 'Confirmed' || order.status === 'Processing').length
 
   return <div className="admin-shell">
     <aside className={`admin-sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
-      <div className="admin-logo"><span className="admin-logo-mark">sa.</span><span><strong>SREE ANNAPURNA</strong><small>OWNER PANEL</small></span><button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="Close navigation"><X /></button></div>
-      <div className="admin-workspace"><span className="workspace-dot" /><span><strong>Owner workspace</strong><small>Agency Operations</small></span><ChevronDown size={15} /></div>
-      <p className="sidebar-label">WORKSPACE</p>
-      <nav className="admin-nav" aria-label="Operations navigation">{nav.map((item) => { const Icon = item.icon; return <Link key={item.id} className={section === item.id ? 'active' : ''} to={`/admin/${item.id}`} onClick={() => setMobileNav(false)}><Icon size={17} /><span>{item.label}</span>{item.id === 'orders' && orders.some((order) => order.status === 'Pending') && <span className="nav-count">{orders.filter((order) => order.status === 'Pending').length}</span>}</Link> })}</nav>
+      <div className="admin-logo">
+        <span className="admin-logo-mark" aria-hidden="true">SA</span>
+        <span>
+          <strong>SREE ANNAPURNA</strong>
+          <small>Owner panel</small>
+        </span>
+        <button className="sidebar-close" onClick={() => setMobileNav(false)} aria-label="Close navigation">
+          <X size={18} />
+        </button>
+      </div>
+      <div className="admin-workspace">
+        <span className="workspace-dot" aria-hidden="true" />
+        <span>
+          <strong>Owner workspace</strong>
+          <small>{brands.length} brand lines · {products.length} products</small>
+        </span>
+      </div>
+      <nav className="admin-nav" aria-label="Operations navigation">
+        {navGroups.map((group) => (
+          <div className="admin-nav-group" key={group.label}>
+            <span className="admin-nav-group-label">{group.label}</span>
+            {group.items.map((item) => {
+              const Icon = item.icon
+              const pending = item.id === 'orders' ? orders.filter((order) => order.status === 'Pending').length : 0
+              return (
+                <Link
+                  key={item.id}
+                  className={section === item.id ? 'active' : ''}
+                  to={`/admin/${item.id}`}
+                  onClick={() => setMobileNav(false)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{item.label}</span>
+                  {pending > 0 && <span className="nav-count">{pending}</span>}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
+      </nav>
       <div className="sidebar-bottom">
-        <div className="demo-sidebar-note"><span>CATALOGUE ACTIVE</span><p>All 6 brand lines and catalogue items are loaded.</p></div>
-        <button type="button" className="back-to-store admin-signout-btn" onClick={logoutOwner}><LogOut size={15} />Sign out of Owner panel</button>
-        <Link to="/" className="back-to-store"><ArrowRight size={15} />Return to customer store</Link>
+        <div className="demo-sidebar-note">
+          <span>Catalogue live</span>
+          <p>{products.length} products and {brands.length} brand lines are published to the storefront.</p>
+        </div>
+        <button type="button" className="back-to-store admin-signout-btn" onClick={logoutOwner}>
+          <LogOut size={15} aria-hidden="true" />Sign out</button>
+        <Link to="/" className="back-to-store">
+          <ArrowRight size={15} aria-hidden="true" />View storefront
+        </Link>
       </div>
     </aside>
     {mobileNav && <button className="sidebar-scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
     <div className="admin-main">
       <header className="admin-topbar">
-        <button className="icon-button admin-mobile-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}><Menu /></button>
-        <div className="admin-search"><Search size={17} /><input placeholder="Search orders, products, customers..." value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search this workspace" /></div>
-        <span className="environment-chip"><span />OWNER MODE</span>
-        <button className="admin-icon-button" aria-label="Notifications" onClick={() => notify('No new operational alerts.')}><Bell size={18} /></button>
-        <button className="button button-outline button-small topbar-signout-btn" onClick={logoutOwner} title="Exit owner panel"><LogOut size={14} /><span>Exit</span></button>
+        <button className="admin-mobile-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}>
+          <Menu size={20} />
+        </button>
+        <div className="admin-topbar-heading">
+          <p className="admin-breadcrumb">
+            Owner workspace <span>/</span> {current.label}
+          </p>
+          <h1>{current.label}</h1>
+        </div>
+        <div className="admin-search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            placeholder="Search this section"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Search the current section"
+          />
+        </div>
+        <span className="environment-chip">
+          <span aria-hidden="true" />
+          Owner mode
+        </span>
+        <button className="admin-icon-button" aria-label="Notifications" onClick={() => notify('No new operational alerts.')}>
+          <Bell size={17} />
+        </button>
+        <button
+          className="button button-outline button-small topbar-signout-btn"
+          onClick={logoutOwner}
+          title="Sign out of the owner panel"
+        >
+          <LogOut size={14} aria-hidden="true" />
+          <span>Sign out</span>
+        </button>
       </header>
       <div className="admin-content">
-        <div className="admin-page-heading"><div><p className="admin-breadcrumb">Workspace <span>/</span> {current.label}</p><h1>{current.label}</h1></div><span className="admin-date">{formatDate(new Date())}</span></div>
+        <div className="admin-intro">
+          <span>Agency operations · {formatDate(new Date())}</span>
+          <span className="admin-date">{awaitingFulfilment} orders awaiting fulfilment</span>
+        </div>
         {section === 'overview' && <Overview products={products} brands={brands} orders={orders} records={records} onViewOrder={setViewingOrder} />}
         {section === 'products' && <ProductsSection products={filteredProducts} brands={brands} onAdd={() => openProductForm()} onEdit={openProductForm} onDelete={(product) => { if (window.confirm(`Delete ${product.name}?`)) { deleteProduct(product.id); notify('Product deleted.') } }} />}
         {section === 'inventory' && <InventorySection products={filteredProducts} onAdjust={(product, amount) => { saveProduct({ ...product, stock: Math.max(0, product.stock + amount) }); notify('Stock updated.') }} />}
@@ -112,6 +215,7 @@ export function AdminPage() {
     {viewingOrder && <OrderDetailsModal order={viewingOrder} products={products} onClose={() => setViewingOrder(null)} onUpdateStatus={(status) => { updateOrder(viewingOrder.id, { status }); setViewingOrder({ ...viewingOrder, status }); notify(`Order status updated to ${status}.`) }} />}
     {editingBrand && <BrandModal brand={editingBrand} onClose={() => setEditingBrand(null)} onSave={(brand) => { saveBrand(brand); setEditingBrand(null); notify('Brand information updated.') }} />}
     {editingRecord && <RecordModal record={editingRecord} onClose={() => setEditingRecord(null)} onSave={(record) => { saveRecord(record); setEditingRecord(null); notify('Record saved.') }} />}
+    <Notice />
   </div>
 }
 
@@ -126,16 +230,101 @@ function Overview({ products, brands, orders, records, onViewOrder }: { products
 
   return <>
     <div className="demo-notice"><span className="demo-notice-icon"><Activity size={17} /></span><span><strong>Operations overview</strong><small>Manage product catalogue, brand lines, incoming customer orders, and dispatch records.</small></span></div>
-    <div className="metric-grid">{[
-      { label: 'Sales from orders', value: money(salesTotal), icon: CircleDollarSign, tone: 'green' },
-      { label: 'Orders placed', value: String(orders.length), icon: ShoppingCart, tone: 'gold' },
-      { label: 'Customer accounts', value: String(customers), icon: Users, tone: 'orange' },
-      { label: 'Catalogue products', value: String(products.length), icon: Package, tone: 'red' },
-    ].map((item) => { const Icon = item.icon; return <div className="metric-card" key={item.label}><div className={`metric-icon ${item.tone}`}><Icon size={18} /></div><span>{item.label}</span><strong>{item.value}</strong><small>{item.label === 'Catalogue products' ? 'Active catalogue items' : 'Operational records'}</small></div> })}</div>
+    <div className="metric-grid">
+      {[
+        {
+          label: 'Order value',
+          value: money(orders.filter((order) => order.status !== 'Cancelled').reduce((sum, order) => sum + order.total, 0)),
+          hint: 'Excludes cancelled orders',
+          icon: CircleDollarSign,
+          tone: 'green',
+        },
+        {
+          label: 'Orders placed',
+          value: String(orders.length),
+          hint: `${pendingOrders} awaiting fulfilment`,
+          icon: ShoppingCart,
+          tone: 'gold',
+        },
+        {
+          label: 'Customer records',
+          value: String(customers),
+          hint: 'Directory entries',
+          icon: Users,
+          tone: 'orange',
+        },
+        {
+          label: 'Catalogue products',
+          value: String(products.length),
+          hint: `Across ${brands.length} brand lines`,
+          icon: Package,
+          tone: 'neutral',
+        },
+      ].map((item) => {
+        const Icon = item.icon
+        return (
+          <div className="metric-card" key={item.label}>
+            <span className="metric-label">{item.label}</span>
+            <strong className="metric-value">{item.value}</strong>
+            <span className={`metric-icon ${item.tone}`} aria-hidden="true">
+              <Icon size={17} />
+            </span>
+            <small>{item.hint}</small>
+          </div>
+        )
+      })}
+    </div>
     <div className="dashboard-main-grid">
-      <section className="panel sales-chart-panel"><div className="panel-heading"><div><h2>Sales overview</h2><p>Recorded customer orders</p></div></div>
-        {chartData.length ? <><div className="sales-total"><strong>{money(salesTotal)}</strong><span>Across {orders.length} orders</span></div><div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{ top: 14, right: 10, left: -18, bottom: 0 }}><CartesianGrid stroke="#e9ece8" vertical={false} /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#929992', fontSize: 11 }} dy={10} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#929992', fontSize: 11 }} tickFormatter={(value: number) => `${value / 1000}k`} /><Tooltip formatter={(value) => [money(Number(value)), 'Sales']} /><Line type="monotone" dataKey="sales" stroke="#174D35" strokeWidth={2.5} dot={{ r: 3 }} /></LineChart></ResponsiveContainer></div></> : <EmptyPanel text="No orders recorded yet. As orders are placed, sales trends will appear here." />}</section>
-      <section className="panel brand-sales-panel"><div className="panel-heading"><div><h2>Brand catalogue</h2><p>Products per brand family</p></div></div>{brands.map((brand) => <div className="brand-sales-row" key={brand.id}><div><span>{brand.name}</span><strong>{products.filter((product) => product.brandId === brand.id).length} products</strong></div><div className="progress-track"><span className="progress-green" style={{ width: `${products.length ? products.filter((product) => product.brandId === brand.id).length / products.length * 100 : 0}%` }} /></div></div>)}</section>
+      <section className="panel sales-chart-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Order value</h2>
+            <p>Recorded orders by date, excluding cancelled</p>
+          </div>
+        </div>
+        {chartData.length ? (
+          <>
+            <div className="sales-total">
+              <strong>{money(salesTotal)}</strong>
+              <span>Across {orders.filter((order) => order.status !== 'Cancelled').length} orders</span>
+            </div>
+            <div className="chart-wrap">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 14, right: 10, left: -6, bottom: 0 }}>
+                  <CartesianGrid stroke="#e8e3de" vertical={false} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b6b6b', fontSize: 11 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b6b6b', fontSize: 11 }} tickFormatter={(value: number) => `${value / 1000}k`} />
+                  <Tooltip formatter={(value) => [money(Number(value)), 'Order value']} />
+                  <Line type="monotone" dataKey="sales" stroke="#b82025" strokeWidth={2} dot={{ r: 3, fill: '#b82025' }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        ) : (
+          <EmptyPanel text="No orders recorded yet. As orders are placed, order value will appear here." />
+        )}
+      </section>
+      <section className="panel brand-sales-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Brand catalogue</h2>
+            <p>Products per principal brand</p>
+          </div>
+        </div>
+        {brands.map((brand) => {
+          const count = products.filter((product) => product.brandId === brand.id).length
+          return (
+            <div className="brand-sales-row" key={brand.id}>
+              <div>
+                <span>{brand.name}</span>
+                <strong>
+                  {count} product{count === 1 ? '' : 's'}
+                </strong>
+              </div>
+            </div>
+          )
+        })}
+      </section>
     </div>
     <div className="dashboard-lower-grid"><section className="panel"><div className="panel-heading"><div><h2>Recent orders</h2><p>Customer order queue</p></div><Link className="panel-link" to="/admin/orders">View all<ArrowRight size={15} /></Link></div><OrdersTable orders={orders.slice(0, 5)} onView={onViewOrder} /></section>
       <section className="panel inventory-alerts"><div className="panel-heading"><div><h2>Inventory watch</h2><p>Current stock status</p></div><Link className="panel-link" to="/admin/inventory">Manage<ArrowRight size={15} /></Link></div>{products.length ? products.filter((product) => product.stock === 0).slice(0, 4).map((product) => <div className="alert-row" key={product.id}><span className="alert-product-icon"><AlertTriangle size={16} /></span><span><strong>{product.name}</strong><small>{product.sku || 'Identifier'}</small></span><span className="stock-alert">0</span></div>) : <EmptyPanel text="No products currently in catalogue." />}{products.length > 0 && !products.some((product) => product.stock === 0) && <EmptyPanel text="All catalogue products have inventory on hand." />}</section></div>
@@ -166,13 +355,13 @@ function ProductsSection({ products, brands, onAdd, onEdit, onDelete }: { produc
       <td>{product.stock}</td>
       <td>
         <span className={`photo-tag ${isCustom ? 'photo-tag-custom' : 'photo-tag-spec'}`}>
-          {isCustom ? '✓ Custom Photo' : 'Spec Placeholder'}
+          {isCustom ? 'Uploaded image' : 'Illustration'}
         </span>
       </td>
       <td><span className={`status-pill ${product.active ? 'status-active' : 'status-muted'}`}>{product.active ? 'Active' : 'Inactive'}</span></td>
       <td>
         <div className="row-actions">
-          <button onClick={() => onEdit(product)} className="upload-photo-btn">📷 Edit Photo</button>
+          <button onClick={() => onEdit(product)} className="upload-photo-btn"><Camera size={13} aria-hidden="true" /> Edit photo</button>
           <button onClick={() => onEdit(product)}>Edit</button>
           <button className="delete-text" onClick={() => onDelete(product)}>Delete</button>
         </div>
@@ -196,7 +385,7 @@ function OrdersSection({ orders, onAdd, onEdit, onView, onDelete, onUpdate }: { 
 
 function OrdersTable({ orders, onUpdate, onEdit, onView, onDelete }: { orders: DemoOrder[]; onUpdate?: (id: string, status: DemoOrder['status']) => void; onEdit?: (order: DemoOrder) => void; onView?: (order: DemoOrder) => void; onDelete?: (order: DemoOrder) => void }) {
   const canManage = !!onEdit || !!onDelete || !!onView
-  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span></td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}{onEdit && <button type="button" onClick={() => onEdit(order)}>Edit</button>}{onDelete && <button type="button" className="delete-text" onClick={() => onDelete(order)}>Delete</button>}</div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
+  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span></td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}<button type="button" onClick={() => apiClient.downloadInvoicePdf(order.id)} className="invoice-btn" title="Download official PDF invoice" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={13} /> Invoice</button>{onEdit && <button type="button" onClick={() => onEdit(order)}>Edit</button>}{onDelete && <button type="button" className="delete-text" onClick={() => onDelete(order)}>Delete</button>}</div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
 }
 
 function EmptyTable({ columns, text }: { columns: number; text: string }) {
@@ -251,6 +440,8 @@ function SettingsSection({ records, onAdd, onEdit, onDelete, clearAll }: { recor
 }
 
 function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order: DemoOrder; products: Product[]; onClose: () => void; onUpdateStatus: (status: DemoOrder['status']) => void }) {
+  const [downloading, setDownloading] = useState(false)
+  const [downloadMsg, setDownloadMsg] = useState('')
   const d = order.deliveryDetails
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -345,8 +536,30 @@ function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order
           </section>
         </div>
 
-        <div className="modal-actions">
-          <button type="button" className="button button-outline" onClick={onClose}>Close</button>
+        <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            {downloadMsg && <span style={{ fontSize: '0.8125rem', color: '#68716b' }}>{downloadMsg}</span>}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              className="button button-admin"
+              disabled={downloading}
+              onClick={async () => {
+                setDownloading(true)
+                setDownloadMsg('Generating invoice PDF...')
+                const res = await apiClient.downloadInvoicePdf(order.id)
+                setDownloading(false)
+                if (res.success) setDownloadMsg('Invoice downloaded.')
+                else setDownloadMsg(res.message || 'Download failed.')
+                setTimeout(() => setDownloadMsg(''), 4000)
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FileText size={16} /> {downloading ? 'Downloading...' : 'Download Invoice (PDF)'}
+            </button>
+            <button type="button" className="button button-outline" onClick={onClose}>Close</button>
+          </div>
         </div>
       </div>
     </div>

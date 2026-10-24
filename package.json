@@ -4,13 +4,13 @@
   "private": true,
   "description": "Sree Annapurna Agency - FMCG Wholesale & Distribution Platform",
   "scripts": {
-    "dev": "concurrently -k --names \"BACKEND,FRONTEND\" -c \"blue.bold,green.bold\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "npm --prefix backend run dev",
-    "build:frontend": "npm --prefix frontend run build",
-    "start:backend": "npm --prefix backend start",
+    "dev": "concurrently -k --names \"BACKEND,FRONTEND\" -c \"blue.bold,green.bold\" \"npm.cmd --prefix backend run dev\" \"npm.cmd --prefix frontend run dev\"",
+    "dev:frontend": "npm.cmd --prefix frontend run dev",
+    "dev:backend": "npm.cmd --prefix backend run dev",
+    "build:frontend": "npm.cmd --prefix frontend run build",
+    "start:backend": "node backend/src/server.js",
     "seed:db": "node database/seed/seed.js",
-    "install:all": "npm --prefix frontend install && npm --prefix backend install"
+    "install:all": "npm.cmd --prefix frontend install && npm.cmd --prefix backend install"
   },
   "keywords": [
     "fmcg",

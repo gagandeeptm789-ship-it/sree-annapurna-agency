@@ -42,7 +42,7 @@ export function ImageAsset({
             onLoad={() => setLoadedSrc(src)}
             onError={() => setFailedSrc(src)}
           />
-          {!isLoaded && <span className="image-loading" aria-hidden="true">Loading image…</span>}
+          {!isLoaded && <span className="image-loading" aria-hidden="true" />}
         </>
       ) : (
         <span className={`image-fallback ${fallbackClassName}`} role="img" aria-label={alt || fallback}>
@@ -57,29 +57,41 @@ export function ProductCard({ product }: { product: Product }) {
   const { brands, addToCart, isOwnerAuthenticated } = useStore()
   const brand = brands.find((item) => item.id === product.brandId)
   const unavailable = !product.active || product.price <= 0 || product.stock <= 0
+  const description =
+    product.description.length > 96 ? `${product.description.slice(0, 96).trimEnd()}…` : product.description
 
   return (
     <article className="product-card">
-      <Link to={`/product/${product.id}`} className="product-image-wrap" aria-label={`View details of ${product.name}`}>
+      <Link
+        to={`/product/${product.id}`}
+        className="product-image-well"
+        aria-label={`View ${product.name}`}
+        tabIndex={-1}
+      >
         <ImageAsset
           src={product.image}
-          alt={product.name}
-          fallback="Packaged retail product"
+          alt={`${product.name} packaging illustration`}
+          fallback="Packaging illustration"
           className="product-image-asset"
           fallbackClassName="product-image-empty"
           fit="contain"
         />
-        <div className="product-card-tags">
-          {product.category && <span className="product-tag">{product.category}</span>}
-          {product.pack && <span className="product-pack-tag">{product.pack}</span>}
-        </div>
+        {product.pack && (
+          <div className="product-card-tags">
+            <span className="product-pack-tag">{product.pack}</span>
+          </div>
+        )}
       </Link>
 
       <div className="product-card-info">
         <div className="product-brand-line">
-          <Link to={`/brands/${brand?.slug}`} className="product-card-brand">
-            {brand?.name ?? 'Sree Annapurna Agency'}
-          </Link>
+          {brand ? (
+            <Link to={`/brands/${brand.slug}`} className="product-card-brand">
+              {brand.name}
+            </Link>
+          ) : (
+            <span className="product-card-brand">Sree Annapurna Agency</span>
+          )}
           {product.sku && <span className="product-sku-code">{product.sku}</span>}
         </div>
 
@@ -87,37 +99,38 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </Link>
 
-        <p className="product-short-desc">
-          {product.description.length > 80 ? `${product.description.slice(0, 80)}…` : product.description}
-        </p>
+        <p className="product-short-desc">{description}</p>
 
-        <div className="product-card-bottom">
+        <div className="product-card-meta">
           <div className="product-pricing-block">
-            <strong>{product.price > 0 ? money(product.price) : 'Trade Enquiries'}</strong>
-            {product.price > 0 && <span className="unit-label">MRP / Unit Price</span>}
+            <strong>{product.price > 0 ? money(product.price) : 'Price on enquiry'}</strong>
+            <span className="unit-label">{product.price > 0 ? 'Unit price' : 'Contact agency'}</span>
           </div>
-
-          <div className="product-card-actions">
-            {isOwnerAuthenticated && (
-              <Link
-                to="/admin/products"
-                className="owner-photo-hint"
-                title="Update photo in Owner Panel"
-              >
-                📷 Photo
-              </Link>
-            )}
-            <button
-              className="button button-primary button-small add-to-basket-btn"
-              aria-label={`Add ${product.name} to cart`}
-              disabled={unavailable}
-              onClick={() => addToCart(product)}
-            >
-              {unavailable ? <Check size={14} /> : <Plus size={14} />}
-              <span>{unavailable ? 'Unavailable' : 'Add to Cart'}</span>
-            </button>
-          </div>
+          <span className={`product-stock ${product.stock > 0 ? '' : 'out'}`}>
+            {product.stock > 0 ? 'In stock' : 'Out of stock'}
+          </span>
         </div>
+
+        <div className="product-card-actions">
+          <button
+            className="button button-primary button-small add-to-basket-btn"
+            aria-label={`Add ${product.name} to cart`}
+            disabled={unavailable}
+            onClick={() => addToCart(product)}
+          >
+            {unavailable ? <Check size={14} /> : <Plus size={14} />}
+            <span>{unavailable ? 'Unavailable' : 'Add to cart'}</span>
+          </button>
+          <Link className="view-details-link" to={`/product/${product.id}`}>
+            View details <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        {isOwnerAuthenticated && (
+          <Link to="/admin/products" className="owner-photo-hint" title="Update packaging image in the owner panel">
+            Update packaging image
+          </Link>
+        )}
       </div>
     </article>
   )
@@ -126,11 +139,13 @@ export function ProductCard({ product }: { product: Product }) {
 export function SectionTitle({
   kicker,
   title,
+  description,
   action,
   to = '/shop',
 }: {
   kicker?: string
   title: string
+  description?: string
   action?: string
   to?: string
 }) {
@@ -139,6 +154,7 @@ export function SectionTitle({
       <div className="section-title-copy">
         {kicker && <p className="eyebrow">{kicker}</p>}
         <h2>{title}</h2>
+        {description && <p>{description}</p>}
       </div>
       {action && (
         <Link className="section-action-link" to={to}>
@@ -154,7 +170,7 @@ export function EmptyState({
   title,
   text,
   link = '/shop',
-  actionText = 'Browse Product Catalogue',
+  actionText = 'Browse product catalogue',
 }: {
   title: string
   text: string
@@ -164,7 +180,7 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <span className="empty-icon">
-        <ShoppingBag size={24} />
+        <ShoppingBag size={22} />
       </span>
       <h3>{title}</h3>
       <p>{text}</p>
@@ -178,10 +194,25 @@ export function EmptyState({
 
 export function Notice() {
   const { notice } = useStore()
-  return notice ? (
-    <div role="status" className="toast" aria-live="polite">
-      <Check size={18} />
+  if (!notice) return null
+  return (
+    <div role="status" aria-live="polite" className="toast">
+      <Check size={16} aria-hidden="true" />
       <span>{notice}</span>
     </div>
-  ) : null
+  )
+}
+
+export function ProductCardSkeleton() {
+  return (
+    <div className="product-card product-card-skeleton" aria-hidden="true">
+      <div className="skeleton product-skeleton-media" />
+      <div className="product-card-info">
+        <div className="skeleton product-skeleton-line" style={{ width: '42%' }} />
+        <div className="skeleton product-skeleton-line" style={{ width: '88%', height: 16 }} />
+        <div className="skeleton product-skeleton-line" style={{ width: '64%' }} />
+        <div className="skeleton product-skeleton-line" style={{ width: '100%', height: 36, marginTop: 8 }} />
+      </div>
+    </div>
+  )
 }

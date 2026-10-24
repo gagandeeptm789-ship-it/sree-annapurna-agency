@@ -6,9 +6,14 @@ const {
   createProduct,
   updateProduct,
 } = require('../controllers/productController');
+const { protectOwner } = require('../middleware/authMiddleware');
 
-router.route('/').get(getProducts).post(createProduct);
-router.route('/:id').get(getProductById).put(updateProduct);
+router.route('/')
+  .get(getProducts)
+  .post(protectOwner, createProduct);
+
+router.route('/:id')
+  .get(getProductById)
+  .put(protectOwner, updateProduct);
 
 module.exports = router;
-

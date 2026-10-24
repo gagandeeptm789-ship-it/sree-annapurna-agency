@@ -59,7 +59,7 @@
   <ellipse cx="250" cy="428" rx="135" ry="16" fill="rgba(40, 30, 20, 0.22)" filter="url(#contact-shadow)"/>
   <ellipse cx="250" cy="426" rx="90" ry="9" fill="rgba(30, 20, 10, 0.35)" filter="url(#contact-shadow)"/>
 
-  <!-- JAR BASE & GLASS BODY (Clear transparent jar) -->
+  <!-- JAR BASE &amp; GLASS BODY (Clear transparent jar) -->
   <!-- Glass bottom base -->
   <rect x="156" y="380" width="188" height="28" rx="14" fill="#d9d4c7" stroke="#b0a896" stroke-width="1.5"/>
   <rect x="159" y="382" width="182" height="22" rx="11" fill="#edeae1"/>
@@ -74,7 +74,7 @@
   <!-- Mango chunk 2 (top right) -->
   <path d="M 290 165 Q 320 170 335 190 Q 325 210 300 205 Q 285 190 290 165 Z" fill="#d4650d" stroke="#8f2b05" stroke-width="1.2"/>
   <path d="M 298 174 Q 318 180 322 195" stroke="#fcd34d" stroke-width="2" fill="none" opacity="0.8"/>
-  <!-- Mustard seeds & chili flakes inside gravy -->
+  <!-- Mustard seeds &amp; chili flakes inside gravy -->
   <circle cx="178" cy="195" r="2.5" fill="#fef08a"/>
   <circle cx="192" cy="182" r="2" fill="#1c1917"/>
   <circle cx="215" cy="198" r="2" fill="#1c1917"/>
@@ -88,7 +88,7 @@
   <circle cx="260" cy="375" r="2" fill="#1c1917"/>
   <circle cx="195" cy="368" r="2.5" fill="#7f1d1d"/>
 
-  <!-- Glass jar outer contour & gloss -->
+  <!-- Glass jar outer contour &amp; gloss -->
   <path d="M 150 160 C 150 135, 175 130, 200 130 L 300 130 C 325 130, 350 135, 350 160 L 346 385 C 346 398, 330 404, 308 404 L 192 404 C 170 404, 154 398, 154 385 Z" fill="none" stroke="#cfc7b4" stroke-width="2.5"/>
 
   <!-- Specular vertical glass highlights -->
@@ -98,7 +98,7 @@
 
   <!-- BRAND WRAP-AROUND LABEL (Centered on Jar) -->
   <g transform="translate(162, 210)">
-    <!-- Label Background with cream paper texture & green header band -->
+    <!-- Label Background with cream paper texture &amp; green header band -->
     <rect x="0" y="0" width="176" height="128" rx="5" fill="#fffdfa" stroke="#d5cdbc" stroke-width="1.5"/>
     
     <!-- Top Green Heritage Band -->
@@ -123,7 +123,7 @@
       <path d="M 12 4 C 13 1, 15 0, 18 1" stroke="#15803d" stroke-width="1.2" fill="none"/>
     </g>
 
-    <!-- Vegetarian Dot & Net Wt -->
+    <!-- Vegetarian Dot &amp; Net Wt -->
     
     <g transform="translate(8, 102)">
       <rect x="0" y="0" width="16" height="16" rx="2" fill="#ffffff" stroke="#238838" stroke-width="1.5"/>
@@ -133,7 +133,7 @@
     <text x="164" y="114" font-family="'Inter', sans-serif" font-size="7.5" font-weight="700" fill="#174d35" text-anchor="end">Net Wt: 300 g</text>
   </g>
 
-  <!-- JAR NECK & THREAD -->
+  <!-- JAR NECK &amp; THREAD -->
   <rect x="180" y="124" width="140" height="12" rx="3" fill="#ded8cc" stroke="#b0a896" stroke-width="1.5"/>
 
   <!-- RED TWIST-OFF LID (Realistic Ribbed Red Cap) -->

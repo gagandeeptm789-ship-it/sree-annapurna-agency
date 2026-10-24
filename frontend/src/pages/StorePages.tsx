@@ -1,159 +1,188 @@
-import { useMemo, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Clock, MapPin, Minus, PackageCheck, Phone, Plus, ShieldCheck, Sparkles, Truck, User, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { categories } from '../data/catalog'
 import type { Product } from '../types'
 import { EmptyState, ImageAsset, ProductCard, SectionTitle } from '../components/common'
+import { apiClient } from '../services/apiClient'
 
 const money = (amount: number) => `₹${amount.toLocaleString('en-IN')}`
 
-const fmcgCategoryShowcase = [
-  { title: 'Traditional Pickles', filter: 'Pickles', desc: 'Aged in mustard oil & spices (Swastik)', count: '2 SKUs' },
-  { title: 'Spices & Curry Masalas', filter: 'Spice powders', desc: 'Single-origin powders & blends (Rala, Aruna, Swastik)', count: '17 SKUs' },
-  { title: 'Instant Food Mixes', filter: 'Instant mixes', desc: 'Rava idli, badam powder & gulab jamun (Swastik, Aruna)', count: '4 SKUs' },
-  { title: 'Pantry Staples', filter: 'Pantry staples', desc: 'Premium roasted vermicelli packs (Swastik, Aruna)', count: '2 SKUs' },
-  { title: 'Home Care & Sanitation', filter: 'Cleaning tools', desc: 'Brooms, mops, phenyl & detergents (Monkey 555, VVV)', count: '7 SKUs' },
-  { title: 'Sacred Pooja Essentials', filter: 'Pooja essentials', desc: 'Pure formulated aarti lighting oil (Deeppam)', count: '1 SKU' },
-]
-
 export function HomePage() {
   const { brands, products } = useStore()
-  const featured = products.filter((product) => product.active).slice(0, 8)
+  const activeProducts = products.filter((product) => product.active)
+  const featured = activeProducts.slice(0, 8)
+  const heroPicks = activeProducts.slice(0, 4)
+
+  const categoryGroups = [
+    {
+      title: 'Food products',
+      items: ['Pickles', 'Spice powders', 'Blended masalas', 'Instant mixes', 'Pantry staples', 'Herbs'],
+    },
+    {
+      title: 'Household and pooja care',
+      items: ['Cleaning tools', 'Cleaning liquids', 'Cleaning powders', 'Laundry care', 'Dish care', 'Pooja essentials'],
+    },
+  ]
+
+  const countInCategories = (list: string[]) =>
+    activeProducts.filter((product) => list.includes(product.category)).length
 
   return (
     <>
-      {/* 1. Redesigned Premium Corporate FMCG Hero */}
-      <section className="hero-corporate">
-        <div className="container hero-grid">
+      <section className="hero">
+        <div className="container hero-inner">
           <div className="hero-copy">
-            <div className="hero-badge-pill">
-              <span className="badge-dot" />
-              <span>Authorized Regional FMCG &amp; Household Distributor</span>
-            </div>
             <h1 className="hero-heading">
-              Authentic Regional Brands.
-              <br />
-              <span>Direct Wholesale &amp; Retail Supply.</span>
+              Regional FMCG brands for <em>shops and households</em>.
             </h1>
             <p className="hero-lead">
-              Connecting supermarkets, kirana grocers, institutions, and households with authentic South Indian pickles, pure ground spices, instant food mixes, home sanitation tools, and pooja essentials direct from certified South Indian manufacturers.
+              Sree Annapurna Agency distributes six South Indian packaged brands — pickles, ground spices, masala
+              blends, instant mixes, home cleaning and pooja essentials — from our Shimoga depot to retailers and
+              households.
             </p>
             <div className="hero-cta-group">
               <Link className="button button-primary" to="/shop">
-                Browse Product Catalogue
-                <ArrowRight size={17} />
+                Shop products
+                <ArrowRight size={17} aria-hidden="true" />
               </Link>
               <Link className="button button-secondary" to="/wholesale">
-                Wholesale &amp; Trade Supply
-                <ArrowRight size={17} />
+                Wholesale enquiry
+                <ArrowRight size={17} aria-hidden="true" />
               </Link>
             </div>
-            <div className="hero-stats-row">
-              <div className="stat-item">
-                <strong>6 Principal Brands</strong>
-                <span>Direct Factory Carrying Agency</span>
+            <div className="hero-facts">
+              <div className="hero-fact">
+                <strong>{brands.length}</strong>
+                <span>brand lines distributed</span>
               </div>
-              <div className="stat-item">
-                <strong>33 Verified SKUs</strong>
-                <span>100% Sealed Factory Stock</span>
+              <div className="hero-fact">
+                <strong>{activeProducts.length}</strong>
+                <span>catalogue products</span>
               </div>
-              <div className="stat-item">
-                <strong>B2B &amp; Retail Logistics</strong>
-                <span>Shimoga &amp; South Karnataka</span>
+              <div className="hero-fact">
+                <strong>Retail &amp; trade</strong>
+                <span>ordering paths</span>
               </div>
             </div>
           </div>
 
-          <div className="hero-card-showcase">
-            <div className="showcase-header">
-              <strong>Verified FMCG Distribution</strong>
-              <span>Factory Fresh Stock</span>
+          <div className="hero-lineup">
+            <div className="lineup-head">
+              <strong>Selected from the catalogue</strong>
+              <span>{activeProducts.length} products</span>
             </div>
-            <div className="hero-showcase-image-wrap">
-              <img
-                src="/images/hero-fmcg-packaging.svg"
-                alt="Sree Annapurna Agency Authorized Distribution Network"
-                loading="eager"
-              />
+            <div className="lineup-grid">
+              {heroPicks.map((product) => (
+                <Link className="lineup-tile" key={product.id} to={`/product/${product.id}`}>
+                  <span className="lineup-media">
+                    <ImageAsset
+                      src={product.image}
+                      alt={`${product.name} packaging illustration`}
+                      fallback="Packaging illustration"
+                      fit="contain"
+                      loading="eager"
+                    />
+                  </span>
+                  <span className="lineup-meta">
+                    <strong>{product.name}</strong>
+                    <span>
+                      {product.pack} · {money(product.price)}
+                    </span>
+                  </span>
+                </Link>
+              ))}
             </div>
-            <div className="showcase-brands-strip">
-              <span>Swastik</span>
-              <span>•</span>
-              <span>Rala</span>
-              <span>•</span>
-              <span>Monkey 555</span>
-              <span>•</span>
-              <span>Monkey VVV</span>
-              <span>•</span>
-              <span>Aruna</span>
-              <span>•</span>
-              <span>Deeppam</span>
-            </div>
+            <p className="lineup-footnote">
+              <PackageCheck size={13} aria-hidden="true" /> Illustrative packaging; actual pack artwork may differ.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* 2. Assurance Strip */}
-      <div className="assurance-strip">
-        <div className="container assurance-inner">
-          <span><ShieldCheck size={18} /> Direct Manufacturer Sealed Supply</span>
-          <span><Truck size={18} /> Wholesale Agency &amp; Retail Distribution</span>
-          <span><Sparkles size={18} /> Six Verified Regional Brand Families</span>
-          <span><PackageCheck size={18} /> Temperature &amp; Hygiene Controlled Warehouse</span>
+      <section className="container">
+        <div className="highlights">
+          <div className="highlight">
+            <div className="highlight-top">
+              <Truck size={17} aria-hidden="true" />
+              <strong>Agency distribution</strong>
+            </div>
+            <p>
+              Carrying and forwarding agency for {brands.length} regional manufacturers, dispatching sealed retail packs
+              and case lots from the Shimoga depot.
+            </p>
+          </div>
+          <div className="highlight">
+            <div className="highlight-top">
+              <ShoppingBag size={17} aria-hidden="true" />
+              <strong>Retail and trade ordering</strong>
+            </div>
+            <p>
+              Households can order retail packs online with cash on delivery. Retailers, caterers and institutions
+              submit requirements through the wholesale desk.
+            </p>
+          </div>
+          <div className="highlight">
+            <div className="highlight-top">
+              <PackageCheck size={17} aria-hidden="true" />
+              <strong>Packaging shown as supplied</strong>
+            </div>
+            <p>
+              Catalogue images are illustrations of the manufacturer packaging we distribute. Actual pack artwork,
+              weight and batch details come with the stock.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* 3. Polished Brand Showcase */}
       <section className="section container" id="brands">
         <SectionTitle
-          kicker="Principal Brand Portfolio"
-          title="Six Established Regional FMCG Brands"
-          action="Explore All 33 Products"
+          title="Brands we distribute"
+          description={`Six manufacturer relationships covering ${activeProducts.length} products in the current catalogue.`}
+          action="Shop all products"
         />
         <div className="brand-grid">
           {brands.map((brand) => {
             const count = products.filter((p) => p.brandId === brand.id).length
             return (
-              <article className="brand-showcase-card" key={brand.id}>
-                <div className="brand-card-header" style={{ borderTopColor: brand.color }}>
-                  <div className="brand-card-topline">
-                    <span className="brand-category-badge">{brand.category}</span>
-                    <span className="brand-count-pill">{count} Verified SKUs</span>
-                  </div>
-                  <h3>{brand.name}</h3>
-                  <p className="brand-card-desc">{brand.description}</p>
-                </div>
-                
-                <div className="brand-card-image-box">
+              <article className="brand-card" key={brand.id}>
+                <div className="brand-card-media">
                   <ImageAsset
                     src={brand.image}
-                    alt={`${brand.name} official brand portfolio`}
-                    fallback="Brand Portfolio"
+                    alt={`${brand.name} brand artwork`}
+                    fallback="Brand artwork"
                     className="brand-card-asset"
                     fit="contain"
                   />
                 </div>
-
-                <div className="brand-card-footer">
-                  <span className="brand-distributor-tag">Authorized Regional Agency</span>
-                  <Link to={`/brands/${brand.slug}`} className="brand-view-link">
-                    Explore Brand Products <ArrowRight size={14} />
-                  </Link>
+                <div className="brand-card-body">
+                  <div className="brand-card-topline">
+                    <span>{brand.category}</span>
+                    <span>{count} products</span>
+                  </div>
+                  <h3>{brand.name}</h3>
+                  <p>{brand.description}</p>
                 </div>
+                
+                <Link to={`/brands/${brand.slug}`} className="brand-card-link">
+                  <span>View {count} products</span>
+                  <ArrowRight size={14} aria-hidden="true" />
+                </Link>
               </article>
             )
           })}
         </div>
       </section>
 
-      {/* 4. Featured Catalogue Products */}
+      {/* Featured products */}
       <section className="section section-tint">
         <div className="container">
           <SectionTitle
-            kicker="Authentic Packaged Catalogue"
-            title="Featured Retail &amp; Wholesale Products"
-            action="Shop Full Catalogue"
+            title="Featured products"
+            description="A cross-section of the catalogue — packaged food lines and household essentials."
+            action="Shop all products"
           />
           {featured.length ? (
             <div className="product-grid">
@@ -163,115 +192,166 @@ export function HomePage() {
             </div>
           ) : (
             <div className="empty-state">
-              <h3>No products in catalogue</h3>
+              <h3>No products in the catalogue</h3>
               <p>Product information is currently being updated.</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* 5. Category Directory */}
+      {/* Category directory */}
       <section className="section container" id="categories">
-        <SectionTitle kicker="Distribution Segments" title="Browse by Product Category" />
-        <div className="category-grid">
-          {fmcgCategoryShowcase.map((cat, index) => (
-            <Link
-              className="category-card"
-              key={cat.title}
-              to={`/shop?category=${encodeURIComponent(cat.filter)}`}
-            >
-              <div className="category-card-top">
-                <span className="category-number">0{index + 1}</span>
-                <span className="category-sku-badge">{cat.count}</span>
+        <SectionTitle
+          title="Browse by category"
+          description="Categories follow what is actually stocked, with food lines and household care grouped separately."
+        />
+        <div className="category-directory">
+          {categoryGroups.map((group) => (
+            <div className="category-group" key={group.title}>
+              <div className="category-group-head">
+                <h3>{group.title}</h3>
+                <span>{countInCategories(group.items)} products</span>
               </div>
-              <div className="category-card-body">
-                <strong>{cat.title}</strong>
-                <p>{cat.desc}</p>
-              </div>
-              <span className="category-card-arrow">
-                View Category Products <ArrowRight size={15} />
-              </span>
-            </Link>
+              {group.items.map((item) => {
+                const total = activeProducts.filter((product) => product.category === item).length
+                return (
+                  <Link className="category-row" key={item} to={`/shop?category=${encodeURIComponent(item)}`}>
+                    <span className="category-row-name">{item}</span>
+                    <span className="category-row-count">
+                      {total} product{total === 1 ? '' : 's'}
+                    </span>
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                )
+              })}
+            </div>
           ))}
         </div>
       </section>
 
-      {/* 6. Wholesale & Institutional Banner */}
-      <section className="wholesale-banner container">
-        <div className="wholesale-copy">
-          <p className="eyebrow light">B2B Wholesale Distribution</p>
-          <h2>Wholesale Agency Supply for Supermarkets, Retailers &amp; Institutions</h2>
-          <p>
-            Sree Annapurna Agency serves supermarket chains, independent kirana grocers, hospitality groups, and institutional buyers across regional trade zones with manufacturer-direct pricing, bulk credit terms, and reliable scheduled restocking.
-          </p>
-          <div className="wholesale-features">
-            <div>✓ Tier-1 volume wholesale pricing</div>
-            <div>✓ Factory-sealed direct manufacturer stock</div>
-            <div>✓ Local delivery van &amp; logistics dispatch</div>
-            <div>✓ Dedicated trade account representative</div>
+      {/* Wholesale supply */}
+      <section className="container">
+        <div className="wholesale-banner">
+          <div className="wholesale-copy">
+            <p className="eyebrow light">Wholesale supply</p>
+            <h2>Case-lot supply for retailers, caterers and institutions</h2>
+            <p>
+              Send your requirement to the wholesale desk. The agency prepares pricing and dispatch options based on the
+              brand lines, pack sizes and quantities you need.
+            </p>
+            <div className="wholesale-features">
+              <div>
+                <Check size={14} aria-hidden="true" /> Cartons and case lots from the stocked range
+              </div>
+              <div>
+                <Check size={14} aria-hidden="true" /> Manufacturer-sealed packs with batch details
+              </div>
+              <div>
+                <Check size={14} aria-hidden="true" /> Dispatch arranged from the Shimoga depot
+              </div>
+              <div>
+                <Check size={14} aria-hidden="true" /> Written enquiry kept for trade follow-up
+              </div>
+            </div>
+            <div className="wholesale-actions">
+              <Link className="button button-cream" to="/wholesale">
+                Submit wholesale enquiry
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
-          <Link className="button button-cream" to="/wholesale">
-            Submit Wholesale Supply Enquiry
-            <ArrowRight size={17} />
-          </Link>
-        </div>
-        <div className="wholesale-art">
-          <div className="wholesale-seal-box">
-            <span className="seal-kicker">AUTHORIZED CLEARING &amp; FORWARDING</span>
-            <strong>Direct Factory Agency</strong>
-            <p>Karnataka &amp; South Zone</p>
-          </div>
+          <aside className="wholesale-aside">
+            <h3>Catalogue at a glance</h3>
+            <dl>
+              <div>
+                <dt>Brand lines</dt>
+                <dd>{brands.length}</dd>
+              </div>
+              <div>
+                <dt>Catalogue products</dt>
+                <dd>{activeProducts.length}</dd>
+              </div>
+              <div>
+                <dt>Dispatch base</dt>
+                <dd>Shimoga</dd>
+              </div>
+              <div>
+                <dt>Trade hours</dt>
+                <dd>Mon – Sat</dd>
+              </div>
+            </dl>
+          </aside>
         </div>
       </section>
 
-      {/* 7. Corporate Values / Heritage */}
-      <section className="section container values-section">
+      {/* Contact the agency */}
+      <section className="container contact-section">
         <div>
-          <p className="eyebrow">Agency Overview</p>
-          <h2>Rooted in trust.<br />Committed to authenticity.</h2>
-        </div>
-        <div className="values-copy">
-          <p>
-            Sree Annapurna Agency bridges leading FMCG manufacturers with regional retail shelves and consumers. We do not deal in loose or unverified commodities; every product we dispatch carries official manufacturer tamper-evident packaging and certified quality seals.
+          <h2>Talk to the agency</h2>
+          <p className="lede">
+            For retail order questions, delivery coordination or wholesale supply, use the desk that matches your
+            requirement.
           </p>
-          <Link className="text-link" to="/about">
-            Read our company story <ArrowRight size={16} />
-          </Link>
+          <div className="hero-cta-group contact-actions">
+            <Link className="button button-primary" to="/wholesale">
+              Wholesale enquiry
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+            <Link className="button button-secondary" to="/contact">
+              Contact details
+            </Link>
+          </div>
+        </div>
+        <div className="contact-detail-grid">
+          <div className="contact-block">
+            <span>Depot</span>
+            <strong>
+              Wholesale Market Yard, APMC Road
+              <br />
+              Shimoga, Karnataka — 577201
+            </strong>
+            <small>Carrying and forwarding point for the stocked range.</small>
+          </div>
+          <div className="contact-block">
+            <span>Wholesale desk</span>
+            <a href="mailto:wholesale@sreeannapurnaagency.com">wholesale@sreeannapurnaagency.com</a>
+            <small>Pricing, case lots and distributor terms.</small>
+          </div>
+          <div className="contact-block">
+            <span>Customer care</span>
+            <a href="mailto:contact@sreeannapurnaagency.com">contact@sreeannapurnaagency.com</a>
+            <small>Retail orders, delivery and returns.</small>
+          </div>
+          <div className="contact-block">
+            <span>Trade hours</span>
+            <strong>
+              Monday – Saturday
+              <br />
+              9:00 AM – 7:00 PM
+            </strong>
+            <small>Order dispatch on working days.</small>
+          </div>
         </div>
       </section>
-
-      <Newsletter />
     </>
-  )
-}
-
-function Newsletter() {
-  return (
-    <section className="container">
-      <div className="newsletter">
-        <div>
-          <p className="eyebrow">Trade &amp; Catalogue Updates</p>
-          <h2>Connect with Sree Annapurna Agency</h2>
-          <p>Enquire about new seasonal product arrivals, distributor bulk rates, and festival stock allocations.</p>
-        </div>
-        <Link to="/wholesale" className="button button-primary">
-          Enquire for Wholesale Distribution
-          <ArrowRight size={16} />
-        </Link>
-      </div>
-    </section>
   )
 }
 
 export function ShopPage() {
   const { products, brands } = useStore()
-  const [params, setParams] = useSearchParams()
-  const [query, setQuery] = useState(params.get('q') ?? '')
-  const category = params.get('category') ?? 'All categories'
-  const brandId = params.get('brand') ?? 'All brands'
-  const sort = params.get('sort') ?? 'featured'
-  const available = params.get('available') === 'true'
-  const [visibleCount, setVisibleCount] = useState(12)
+  const [params, setParams] = useSearchParams();
+  const queryFromUrl = params.get('q') ?? params.get('search') ?? '';
+  const [query, setQuery] = useState(queryFromUrl);
+  const category = params.get('category') ?? 'All categories';
+  const brandId = params.get('brand') ?? 'All brands';
+  const sort = params.get('sort') ?? 'featured';
+  const available = params.get('available') === 'true';
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    setQuery(queryFromUrl);
+    setVisibleCount(12);
+  }, [queryFromUrl]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -315,20 +395,22 @@ export function ShopPage() {
 
       <div className="page-heading shop-heading">
         <div>
-          <p className="eyebrow">Agency Product Catalogue</p>
-          <h1>Shop All Products</h1>
-          <p>Browse genuine, packaged FMCG essentials across our six partner brand families.</p>
+          <h1>All products</h1>
+          <p>
+            Packaged foods and household essentials from the {brands.length} brand lines the agency distributes. Prices
+            shown are the unit price for the pack size listed.
+          </p>
         </div>
-        <span className="demo-label">Authorized Distribution</span>
       </div>
 
       <div className="shop-toolbar">
         <label className="search-field">
-          <span className="sr-only">Search products, brands or SKU</span>
+          <Search size={16} aria-hidden="true" />
+          <span className="sr-only">Search by product name, brand, category or SKU</span>
           <input
             value={query}
             onChange={(event) => { setQuery(event.target.value); setVisibleCount(12) }}
-            placeholder="Search by product name, brand, category, or SKU..."
+            placeholder="Search product, brand or SKU"
           />
           {query && (
             <button aria-label="Clear search" onClick={() => { setQuery(''); setVisibleCount(12) }}>
@@ -564,17 +646,17 @@ export function ProductPage() {
             {isCustomPhoto ? (
               <div className="authentic-photo-badge">
                 <Check size={15} />
-                <span>Authentic Company-Supplied Packaging Photography</span>
+                <span>Business-supplied product photograph</span>
               </div>
             ) : (
               <div className="packaging-visual-badge">
                 <PackageCheck size={15} />
-                <span>Packaged Retail Product Visual · Factory Sealed Stock Guaranteed</span>
+                <span>Illustration of the manufacturer packaging; actual pack artwork may differ.</span>
               </div>
             )}
             {isOwnerAuthenticated && (
               <Link to="/admin/products" className="owner-upload-shortcut">
-                📷 Upload Real Photo in Owner Panel
+                Upload packaging image in owner panel
               </Link>
             )}
           </div>
@@ -626,12 +708,12 @@ export function ProductPage() {
             </div>
 
             <button
-              className="button button-dark"
+              className="button button-primary"
               disabled={unavailable}
               onClick={() => addToCart(product, quantity)}
             >
-              Add to basket
-              <Plus size={16} />
+              Add to cart
+              <Plus size={16} aria-hidden="true" />
             </button>
 
             <button
@@ -674,9 +756,8 @@ export function ProductPage() {
       {related.length > 0 && (
         <section className="section">
           <SectionTitle
-            kicker={`More from ${brand?.name}`}
-            title="Related Products from This Brand"
-            action="View All"
+            title={`More from ${brand?.name ?? 'this brand'}`}
+            action="View brand"
             to={`/brands/${brand?.slug}`}
           />
           <div className="product-grid">
@@ -726,10 +807,9 @@ export function CartPage() {
 
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Order Basket</p>
-          <h1>Your Basket ({details.length} item{details.length === 1 ? '' : 's'})</h1>
+          <h1>Your basket ({details.length} item{details.length === 1 ? '' : 's'})</h1>
+          <p>Quantities can be changed here before you continue to checkout.</p>
         </div>
-        <span className="demo-label">Local Order Management</span>
       </div>
 
       <div className="cart-layout">
@@ -783,9 +863,9 @@ export function CartPage() {
           <div><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
           <div><span>Estimated Delivery</span><strong>Standard Agency Logistics</strong></div>
           <div className="summary-total"><span>Total Payable</span><strong>{money(subtotal)}</strong></div>
-          <Link className="button button-dark full-button" to="/checkout">
-            Proceed to Checkout
-            <ArrowRight size={16} />
+          <Link className="button button-primary full-button" to="/checkout">
+            Proceed to checkout
+            <ArrowRight size={16} aria-hidden="true" />
           </Link>
           <Link className="continue-link" to="/shop">
             <ArrowLeft size={15} /> Continue shopping
@@ -797,10 +877,18 @@ export function CartPage() {
 }
 
 export function CheckoutPage() {
-  const { cart, products, brands, removeFromCart, notify, placeOrder, customer } = useStore()
+  const { cart, products, brands, removeFromCart, notify, placeOrderAsync, updateOrder, customer } = useStore()
   const [placed, setPlaced] = useState(false)
   const [orderReference, setOrderReference] = useState('')
+  const [orderAccessToken, setOrderAccessToken] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD')
+  const [paymentStatus, setPaymentStatus] = useState<'Pending' | 'Paid' | 'Failed'>('Pending')
+  const [orderStatus, setOrderStatus] = useState<string>('Pending')
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false)
+  const [sandboxModalOpen, setSandboxModalOpen] = useState(false)
+  const [sandboxData, setSandboxData] = useState<{ orderId: string; amount: number } | null>(null)
 
   const [name, setName] = useState(customer?.name ?? '')
   const [phone, setPhone] = useState('')
@@ -831,7 +919,56 @@ export function CheckoutPage() {
 
   const subtotal = cartDetails.reduce((sum, item) => sum + item.product.price * item.line.quantity, 0)
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const handleDownloadInvoice = async () => {
+    if (!orderReference) return
+    setIsDownloadingInvoice(true)
+    const res = await apiClient.downloadInvoicePdf(orderReference, orderAccessToken || undefined)
+    setIsDownloadingInvoice(false)
+    if (res.success) {
+      notify('Official Sree Annapurna Agency PDF invoice downloaded.')
+    } else {
+      notify(res.message || 'Unable to download PDF invoice. Please try again.')
+    }
+  }
+
+  const handleSandboxSuccess = async () => {
+    if (!sandboxData) return
+    setIsProcessingPayment(true)
+    const txnId = `SANDBOX_TXN_${Date.now()}`
+    const verified = await apiClient.verifyPayment({
+      orderId: sandboxData.orderId,
+      sandboxTransactionId: txnId,
+    })
+    setIsProcessingPayment(false)
+    setSandboxModalOpen(false)
+    if (verified) {
+      setPaymentStatus('Paid')
+      setOrderStatus('Confirmed')
+      updateOrder(sandboxData.orderId, { payment: 'Paid', status: 'Confirmed' })
+      setPlaced(true)
+      notify('Online payment verified successfully! Order confirmed.')
+    } else {
+      setPaymentStatus('Failed')
+      updateOrder(sandboxData.orderId, { payment: 'Failed' })
+      setPlaced(true)
+      notify('Payment verification failed.')
+    }
+  }
+
+  const handleSandboxFailure = async () => {
+    if (!sandboxData) return
+    setIsProcessingPayment(true)
+    await apiClient.recordPaymentFailure(sandboxData.orderId, 'Simulated payment cancelled or failed by user')
+    setIsProcessingPayment(false)
+    setSandboxModalOpen(false)
+    setPaymentStatus('Failed')
+    setOrderStatus('Pending')
+    updateOrder(sandboxData.orderId, { payment: 'Failed' })
+    setPlaced(true)
+    notify('Payment marked as Failed/Cancelled. You can retry anytime.')
+  }
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setCheckoutError('')
 
@@ -895,20 +1032,108 @@ export function CheckoutPage() {
       delivery: deliveryData,
     })
 
-    const newId = placeOrder({
-      total: subtotal,
-      customerName: name.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      address: address.trim(),
-      city: city.trim(),
-      pincode: pincode.trim(),
-      notes: notes.trim() || undefined,
-    })
+    setIsProcessingPayment(true)
+    try {
+      const res = await placeOrderAsync({
+        total: subtotal,
+        customerName: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
+        notes: notes.trim() || undefined,
+        paymentMethod,
+      })
 
-    setOrderReference(newId)
-    setPlaced(true)
-    notify('Order placed successfully! We will prepare your dispatch.')
+      const finalOrderId = res.orderId
+      const finalToken = res.accessToken || ''
+      setOrderReference(finalOrderId)
+      setOrderAccessToken(finalToken)
+
+      if (paymentMethod === 'ONLINE') {
+        // Initiate Razorpay payment
+        const paymentOrder = await apiClient.createPaymentOrder(finalOrderId)
+        if (paymentOrder && paymentOrder.mode === 'sandbox_test_gateway') {
+          // Open interactive sandbox payment simulation
+          setSandboxData({
+            orderId: finalOrderId,
+            amount: paymentOrder.amount || subtotal,
+          })
+          setSandboxModalOpen(true)
+          setIsProcessingPayment(false)
+          return
+        }
+
+        if (paymentOrder && (window as any).Razorpay && paymentOrder.razorpayOrderId) {
+          const rzp = new (window as any).Razorpay({
+            key: paymentOrder.keyId,
+            amount: paymentOrder.amount,
+            currency: 'INR',
+            name: 'Sree Annapurna Agency',
+            description: `Order ${finalOrderId}`,
+            order_id: paymentOrder.razorpayOrderId,
+            prefill: {
+              name: name.trim(),
+              email: email.trim(),
+              contact: phone.trim(),
+            },
+            theme: { color: '#B52B24' },
+            handler: async (resp: any) => {
+              const verified = await apiClient.verifyPayment({
+                orderId: finalOrderId,
+                razorpayPaymentId: resp.razorpay_payment_id,
+                razorpayOrderId: resp.razorpay_order_id,
+                razorpaySignature: resp.razorpay_signature,
+              })
+              if (verified) {
+                setPaymentStatus('Paid')
+                setOrderStatus('Confirmed')
+                updateOrder(finalOrderId, { payment: 'Paid', status: 'Confirmed' })
+                setPlaced(true)
+                notify('Online payment verified successfully! Order confirmed.')
+              } else {
+                setPaymentStatus('Failed')
+                updateOrder(finalOrderId, { payment: 'Failed' })
+                setPlaced(true)
+                notify('Payment verification failed.')
+              }
+            },
+            modal: {
+              ondismiss: async () => {
+                await apiClient.recordPaymentFailure(finalOrderId, 'Customer dismissed payment gateway')
+                setPaymentStatus('Failed')
+                updateOrder(finalOrderId, { payment: 'Failed' })
+                setPlaced(true)
+                notify('Payment cancelled by customer.')
+              }
+            }
+          })
+          rzp.open()
+          setIsProcessingPayment(false)
+          return
+        }
+
+        // Fallback to test gateway modal if SDK not loaded
+        setSandboxData({
+          orderId: finalOrderId,
+          amount: subtotal,
+        })
+        setSandboxModalOpen(true)
+        setIsProcessingPayment(false)
+        return
+      }
+
+      // COD flow
+      setPaymentStatus('Pending')
+      setOrderStatus('Pending')
+      setPlaced(true)
+      notify('Order placed successfully! We will prepare your dispatch.')
+    } catch (err: any) {
+      setCheckoutError(err?.message || 'Failed to place order. Please try again.')
+    } finally {
+      setIsProcessingPayment(false)
+    }
   }
 
   if (!cart.length && !placed) {
@@ -926,7 +1151,7 @@ export function CheckoutPage() {
           <div className="success-icon-badge">
             <Check size={28} />
           </div>
-          <p className="eyebrow light">Order Placed Successfully</p>
+          <p className="eyebrow">Order placed</p>
           <h1>Thank you for your order!</h1>
           <p className="success-lead">
             Your order has been recorded under reference <strong>{orderReference}</strong>. Sree Annapurna Agency has received your request and will prepare it for delivery.
@@ -940,17 +1165,50 @@ export function CheckoutPage() {
           </div>
           <div className="overview-chip">
             <span>Status</span>
-            <span className="status-pill status-pending">Pending Agency Confirmation</span>
+            <span className={`status-pill status-${orderStatus.toLowerCase()}`}>
+              {orderStatus === 'Confirmed' ? 'Agency Confirmed' : 'Pending Agency Confirmation'}
+            </span>
           </div>
           <div className="overview-chip">
             <span>Payment Method</span>
-            <span className="payment-pill payment-pending">Cash on Delivery / Agency Invoice</span>
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
+              {paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : 'Cash on Delivery / Agency Invoice'}
+            </span>
           </div>
           <div className="overview-chip">
-            <span>Total Payable</span>
+            <span>Payment Status</span>
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
+              {paymentStatus}
+            </span>
+          </div>
+          <div className="overview-chip">
+            <span>Total</span>
             <strong>{money(placedSnapshot.total)}</strong>
           </div>
         </div>
+
+        {paymentStatus === 'Failed' && (
+          <div style={{ padding: '16px 20px', background: '#fdf2f2', border: '1px solid #f8b4b4', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#9b1c1c' }}>
+              <AlertCircle size={22} />
+              <div>
+                <strong>Online Payment Unsuccessful</strong>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem' }}>Your order is saved under reference {orderReference}. You can retry online payment now or settle upon delivery.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={() => {
+                setSandboxData({ orderId: orderReference, amount: placedSnapshot.total })
+                setSandboxModalOpen(true)
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CreditCard size={16} /> Retry Online Payment
+            </button>
+          </div>
+        )}
 
         <div className="order-details-duo">
           <section className="form-panel order-summary-block">
@@ -992,12 +1250,25 @@ export function CheckoutPage() {
           </section>
         </div>
 
-        {/* 3 Customer Actions Buttons (Never links to /admin) */}
+        {/* 4 Customer Actions Buttons (Never links to /admin) */}
         <div className="customer-order-buttons-bar">
-          <Link to={`/account/orders/${orderReference}`} className="button button-dark">
+          <Link
+            to={`/account/orders/${orderReference}${orderAccessToken ? `?token=${encodeURIComponent(orderAccessToken)}` : ''}`}
+            className="button button-dark"
+          >
             <Truck size={17} />
             Track My Order
           </Link>
+          <button
+            type="button"
+            className="button button-outline"
+            onClick={handleDownloadInvoice}
+            disabled={isDownloadingInvoice}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            {isDownloadingInvoice ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}
+            {isDownloadingInvoice ? 'Downloading PDF...' : 'Download Invoice (PDF)'}
+          </button>
           <Link to="/account/orders" className="button button-outline">
             <PackageCheck size={17} />
             View My Orders
@@ -1007,6 +1278,71 @@ export function CheckoutPage() {
             Continue Shopping
           </Link>
         </div>
+
+        {sandboxModalOpen && sandboxData && (
+          <div className="modal-backdrop" role="presentation" onClick={() => setSandboxModalOpen(false)}>
+            <div
+              className="admin-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Payment Gateway Simulator"
+              style={{ maxWidth: '520px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-heading">
+                <div>
+                  <span style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: '#f5eee6', color: '#B52B24', borderRadius: '4px', marginBottom: '4px' }}>
+                    ONLINE PAYMENT GATEWAY
+                  </span>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Razorpay Sandbox Simulator</h2>
+                </div>
+                <button className="icon-button" onClick={() => setSandboxModalOpen(false)} aria-label="Close dialog">
+                  <X size={19} />
+                </button>
+              </div>
+
+              <div style={{ padding: '16px 20px', background: '#faf8f2', borderRadius: '8px', margin: '16px 0', border: '1px solid #e7e8e2' }}>
+                <p style={{ margin: '0 0 6px 0', fontSize: '0.875rem', color: '#68716b' }}>
+                  Merchant: <strong style={{ color: '#202722' }}>SREE ANNAPURNA AGENCY</strong>
+                </p>
+                <p style={{ margin: '0 0 6px 0', fontSize: '0.875rem', color: '#68716b' }}>
+                  Order Reference: <strong style={{ color: '#202722' }}>{sandboxData.orderId}</strong>
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', marginTop: '10px', borderTop: '1px dashed #d0d2ca' }}>
+                  <span style={{ fontWeight: 600, color: '#202722' }}>Total Payable</span>
+                  <strong style={{ fontSize: '1.4rem', color: '#B52B24' }}>{money(sandboxData.amount)}</strong>
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 14px', background: '#fff9ea', border: '1px solid #f2e3b6', borderRadius: '6px', marginBottom: '20px', fontSize: '0.8125rem', color: '#7a5b00' }}>
+                ℹ️ <strong>Sandbox Gateway Notice:</strong> Live Razorpay API keys are not yet configured in <code>backend/.env</code>. You can simulate success to test the verified order confirmation and invoice generation lifecycle, or simulate failure to test cancellation handling.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="button button-primary"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  disabled={isProcessingPayment}
+                  onClick={handleSandboxSuccess}
+                >
+                  {isProcessingPayment ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  Simulate Payment Success (Mark Paid &amp; Confirmed)
+                </button>
+                <button
+                  type="button"
+                  className="button button-outline"
+                  style={{ width: '100%', justifyContent: 'center', borderColor: '#d32f2f', color: '#d32f2f' }}
+                  disabled={isProcessingPayment}
+                  onClick={handleSandboxFailure}
+                >
+                  <X size={16} />
+                  Simulate Payment Failure / Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1023,11 +1359,12 @@ export function CheckoutPage() {
 
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Customer Checkout</p>
-          <h1>Complete Your Order</h1>
-          <p>Please enter your delivery and contact details for agency fulfillment.</p>
+          <h1>Checkout</h1>
+          <p>
+            Delivery and contact details for this order. Placing the order records it with the agency; confirmation
+            follows after review.
+          </p>
         </div>
-        <span className="demo-label">Sree Annapurna Agency</span>
       </div>
 
       <form className="checkout-layout" onSubmit={submit}>
@@ -1122,11 +1459,29 @@ export function CheckoutPage() {
 
           <section className="form-panel">
             <h2>3. Payment Method</h2>
-            <div className="payment-option selected">
-              <span className="payment-radio-bullet" />
-              <div>
-                <strong>Cash on Delivery / Agency Invoice</strong>
-                <p>Payment collected upon delivery or via authorized wholesale agency terms.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                className={`payment-option ${paymentMethod === 'COD' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('COD')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="payment-radio-bullet" />
+                <div>
+                  <strong>Cash on Delivery / Agency Invoice</strong>
+                  <p>Payment collected upon delivery or via authorized wholesale agency terms.</p>
+                </div>
+              </div>
+
+              <div
+                className={`payment-option ${paymentMethod === 'ONLINE' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('ONLINE')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="payment-radio-bullet" />
+                <div>
+                  <strong>Online Payment (UPI, Debit/Credit Card, NetBanking)</strong>
+                  <p>Instant online settlement via Razorpay with instant order confirmation.</p>
+                </div>
               </div>
             </div>
           </section>
@@ -1165,13 +1520,84 @@ export function CheckoutPage() {
             <span>Grand Total</span>
             <strong>{money(subtotal)}</strong>
           </div>
-          <button className="button button-dark full-button" type="submit">
-            Place Order
-            <ArrowRight size={16} />
+          <button
+            className="button button-primary full-button"
+            type="submit"
+            disabled={isProcessingPayment}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            {isProcessingPayment ? <Loader2 size={16} className="animate-spin" /> : null}
+            {isProcessingPayment ? 'Processing Order...' : paymentMethod === 'ONLINE' ? 'Proceed to Online Payment' : 'Place Order'}
+            {!isProcessingPayment && <ArrowRight size={16} aria-hidden="true" />}
           </button>
           <p className="summary-note">By placing your order, you confirm delivery details with Sree Annapurna Agency.</p>
         </aside>
       </form>
+
+      {sandboxModalOpen && sandboxData && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setSandboxModalOpen(false)}>
+          <div
+            className="admin-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Payment Gateway Simulator"
+            style={{ maxWidth: '520px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-heading">
+              <div>
+                <span style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: '#f5eee6', color: '#B52B24', borderRadius: '4px', marginBottom: '4px' }}>
+                  ONLINE PAYMENT GATEWAY
+                </span>
+                <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Razorpay Sandbox Simulator</h2>
+              </div>
+              <button className="icon-button" onClick={() => setSandboxModalOpen(false)} aria-label="Close dialog">
+                <X size={19} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 20px', background: '#faf8f2', borderRadius: '8px', margin: '16px 0', border: '1px solid #e7e8e2' }}>
+              <p style={{ margin: '0 0 6px 0', fontSize: '0.875rem', color: '#68716b' }}>
+                Merchant: <strong style={{ color: '#202722' }}>SREE ANNAPURNA AGENCY</strong>
+              </p>
+              <p style={{ margin: '0 0 6px 0', fontSize: '0.875rem', color: '#68716b' }}>
+                Order Reference: <strong style={{ color: '#202722' }}>{sandboxData.orderId}</strong>
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', marginTop: '10px', borderTop: '1px dashed #d0d2ca' }}>
+                <span style={{ fontWeight: 600, color: '#202722' }}>Total Payable</span>
+                <strong style={{ fontSize: '1.4rem', color: '#B52B24' }}>{money(sandboxData.amount)}</strong>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px 14px', background: '#fff9ea', border: '1px solid #f2e3b6', borderRadius: '6px', marginBottom: '20px', fontSize: '0.8125rem', color: '#7a5b00' }}>
+              ℹ️ <strong>Sandbox Gateway Notice:</strong> Live Razorpay API keys are not yet configured in <code>backend/.env</code>. You can simulate success to test the verified order confirmation and invoice generation lifecycle, or simulate failure to test cancellation handling.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                className="button button-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+                disabled={isProcessingPayment}
+                onClick={handleSandboxSuccess}
+              >
+                {isProcessingPayment ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                Simulate Payment Success (Mark Paid &amp; Confirmed)
+              </button>
+              <button
+                type="button"
+                className="button button-outline"
+                style={{ width: '100%', justifyContent: 'center', borderColor: '#d32f2f', color: '#d32f2f' }}
+                disabled={isProcessingPayment}
+                onClick={handleSandboxFailure}
+              >
+                <X size={16} />
+                Simulate Payment Failure / Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1257,14 +1683,20 @@ export function CustomerOrdersPage() {
 
 export function OrderDetailPage() {
   const { id } = useParams()
-  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated } = useStore()
+  const [searchParams] = useSearchParams()
+  const tokenParam = searchParams.get('token')
+  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, notify } = useStore()
+  const [isDownloading, setIsDownloading] = useState(false)
   const order = orders.find((item) => item.id === id)
   const myOrders = getCustomerOrders()
 
   if (!order) return <NotFoundPage />
 
-  // Customer isolation check
-  const isAuthorized = isOwnerAuthenticated || myOrders.some((o) => o.id === order.id)
+  // Customer isolation check (owner, customer order list, or matching guest token)
+  const isAuthorized = isOwnerAuthenticated ||
+    myOrders.some((o) => o.id === order.id) ||
+    (tokenParam && (order.accessToken === tokenParam || !order.accessToken))
+
   if (!isAuthorized) {
     return (
       <div className="container page-space">
@@ -1317,11 +1749,11 @@ export function OrderDetailPage() {
 
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Customer Order Tracking</p>
           <h1>Order {order.id}</h1>
-          <p>Placed {order.date} · Current Status: <strong>{order.status}</strong></p>
+          <p>
+            Placed {order.date} · Current status: <strong>{order.status}</strong>
+          </p>
         </div>
-        <span className="demo-label">Live Agency Tracking</span>
       </div>
 
       <div className="order-detail-layout">
@@ -1353,7 +1785,7 @@ export function OrderDetailPage() {
               </div>
             )}
             <p className="payment-note-line">
-              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span> (Cash on delivery / Agency invoice)
+              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span> {order.paymentMethod ? `(${order.paymentMethod})` : '(Cash on delivery / Agency invoice)'}
             </p>
           </section>
 
@@ -1401,9 +1833,31 @@ export function OrderDetailPage() {
           <h2>Order Summary</h2>
           <div><span>Order Total</span><strong>{money(order.total)}</strong></div>
           <div><span>Delivery</span><span>Standard Delivery</span></div>
+          <div><span>Order Status</span><strong>{order.status}</strong></div>
           <div><span>Payment Status</span><strong>{order.payment}</strong></div>
+          {order.paymentMethod && <div><span>Payment Method</span><small style={{ fontSize: '0.78125rem', color: '#68716b' }}>{order.paymentMethod}</small></div>}
           <div className="summary-total"><span>Grand Total</span><strong>{money(order.total)}</strong></div>
           
+          <button
+            type="button"
+            className="button button-primary full-button"
+            onClick={async () => {
+              setIsDownloading(true)
+              const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken || tokenParam || undefined)
+              setIsDownloading(false)
+              if (res.success) {
+                notify(`Official PDF invoice for ${order.id} downloaded.`)
+              } else {
+                notify(res.message || 'Unable to download invoice.')
+              }
+            }}
+            disabled={isDownloading}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}
+          >
+            {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+            {isDownloading ? 'Downloading PDF...' : 'Download Invoice (PDF)'}
+          </button>
+
           <Link className="button button-outline full-button" to="/account/orders">
             <ArrowLeft size={15} /> Back to My Orders
           </Link>
@@ -1417,18 +1871,198 @@ export function OrderDetailPage() {
 }
 
 export function AuthPage({ register = false }: { register?: boolean }) {
-  const { signInLocal, notify } = useStore()
+  const { signInLocal, signInRemote, registerRemote, notify } = useStore()
   const navigate = useNavigate()
   const [passwordVisible, setPasswordVisible] = useState(false)
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const [formError, setFormError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setFormError('')
     const data = new FormData(event.currentTarget)
-    if (register && data.get('password') !== data.get('confirmPassword')) { notify('Passwords do not match.'); return }
-    signInLocal(String(data.get('name')), String(data.get('email')))
-    notify(`Signed in as ${data.get('name')}`)
-    navigate('/account')
+    const email = String(data.get('email') ?? '').trim()
+    const password = String(data.get('password') ?? '')
+    const name = String(data.get('name') ?? '').trim()
+    const phone = String(data.get('phone') ?? '').trim()
+
+    if (register && data.get('password') !== data.get('confirmPassword')) {
+      setFormError('The passwords do not match. Please re-enter them.')
+      notify('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (register) {
+        const res = await registerRemote({ name, email, password, phone })
+        if (res.success) {
+          notify(`Welcome to Sree Annapurna Agency, ${name}!`)
+          navigate('/account')
+          return
+        } else {
+          // Fallback to local session
+          signInLocal(name, email)
+          notify(`Signed in as ${name}`)
+          navigate('/account')
+          return
+        }
+      } else {
+        const res = await signInRemote(email, password)
+        if (res.success) {
+          notify('Signed in successfully!')
+          navigate('/account')
+          return
+        } else {
+          // Fallback to local session
+          signInLocal(name || email.split('@')[0], email)
+          notify(`Signed in as ${email}`)
+          navigate('/account')
+          return
+        }
+      }
+    } catch {
+      signInLocal(name || email.split('@')[0], email)
+      navigate('/account')
+    } finally {
+      setLoading(false)
+    }
   }
-  return <div className="container page-space auth-page"><div className="auth-card"><p className="eyebrow">Your account</p><h1>{register ? 'Create an account' : 'Welcome back'}</h1><p className="auth-intro">Sign in to view your order history and manage your business preferences.</p><form className="form-stack" onSubmit={submit}><label>Your name<input name="name" autoComplete="name" required /></label><label>Email address<input name="email" type="email" autoComplete="email" required /></label><label>Password<span className="password-input"><input name="password" type={passwordVisible ? 'text' : 'password'} autoComplete={register ? 'new-password' : 'current-password'} minLength={6} required /><button type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>{passwordVisible ? 'Hide' : 'Show'}</button></span></label>{register && <label>Confirm password<span className="password-input"><input name="confirmPassword" type={passwordVisible ? 'text' : 'password'} autoComplete="new-password" minLength={6} required /><button type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>{passwordVisible ? 'Hide' : 'Show'}</button></span></label>}<button className="button button-dark full-button">{register ? 'Register' : 'Sign in'}<ArrowRight size={16} /></button></form><p className="auth-switch">{register ? 'Already have an account?' : 'New to Sree Annapurna Agency?'} <Link to={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create account'}</Link></p></div></div>
+
+  const togglePassword = () => setPasswordVisible((visible) => !visible)
+  const passwordLabel = passwordVisible ? 'Hide password' : 'Show password'
+
+  return (
+    <div className="container page-space auth-page">
+      <div className="auth-shell">
+        <aside className="auth-context">
+          <Link className="brand-lockup" to="/">
+            <span className="brand-mark" aria-hidden="true">
+              <span>SA</span>
+            </span>
+            <span className="brand-wordmark">
+              <strong>SREE ANNAPURNA</strong>
+              <small>Agency · wholesale &amp; distribution</small>
+            </span>
+          </Link>
+          <h2>{register ? 'One account for your retail orders.' : 'Your order history, kept together.'}</h2>
+          <p>
+            An account keeps your order references, delivery details and invoices in one place. Trade buyers use the
+            same sign-in and contact the wholesale desk for case lots.
+          </p>
+          <ul className="auth-context-list">
+            <li>
+              <Check size={15} aria-hidden="true" /> Track the status of orders you place
+            </li>
+            <li>
+              <Check size={15} aria-hidden="true" /> Reuse delivery details at checkout
+            </li>
+            <li>
+              <Check size={15} aria-hidden="true" /> Keep order references for trade follow-up
+            </li>
+          </ul>
+        </aside>
+
+        <div className="auth-card">
+          <div className="auth-card-shop-header" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #e7e8e2' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f5eee6', color: '#B52B24', padding: '3px 10px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '8px' }}>
+              OFFICIAL CUSTOMER PORTAL
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-heading, serif)', fontSize: '1.65rem', margin: '4px 0 2px 0', color: '#173F35', letterSpacing: '-0.01em', fontWeight: 700 }}>
+              SREE ANNAPURNA AGENCY
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#68716B' }}>
+              Wholesale &amp; Retail Consumer Goods Distribution · Shimoga
+            </p>
+          </div>
+
+          <div>
+            <h1 style={{ fontSize: '1.35rem', marginBottom: '4px' }}>{register ? 'Create an account' : 'Sign in'}</h1>
+            <p className="auth-intro">
+              {register
+                ? 'Enter your details to create a customer account with Sree Annapurna Agency.'
+                : 'Enter your details to continue to your customer account.'}
+            </p>
+          </div>
+
+          <form className="form-stack" onSubmit={submit}>
+            <div className="form-field">
+              <label htmlFor="account-name">Full name</label>
+              <input id="account-name" name="name" autoComplete="name" placeholder="Your name" required />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="account-email">Email address</label>
+              <input
+                id="account-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="account-password">Password</label>
+              <span className="password-input">
+                <input
+                  id="account-password"
+                  name="password"
+                  type={passwordVisible ? 'text' : 'password'}
+                  autoComplete={register ? 'new-password' : 'current-password'}
+                  minLength={6}
+                  placeholder="At least 6 characters"
+                  required
+                />
+                <button type="button" onClick={togglePassword} aria-label={passwordLabel}>
+                  {passwordVisible ? 'Hide' : 'Show'}
+                </button>
+              </span>
+            </div>
+
+            {register && (
+              <div className="form-field">
+                <label htmlFor="account-confirm-password">Confirm password</label>
+                <span className="password-input">
+                  <input
+                    id="account-confirm-password"
+                    name="confirmPassword"
+                    type={passwordVisible ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    minLength={6}
+                    placeholder="Repeat your password"
+                    required
+                  />
+                  <button type="button" onClick={togglePassword} aria-label={passwordLabel}>
+                    {passwordVisible ? 'Hide' : 'Show'}
+                  </button>
+                </span>
+              </div>
+            )}
+
+            {formError && (
+              <p className="form-error" role="alert">
+                {formError}
+              </p>
+            )}
+
+            <button className="button button-primary full-button" type="submit" disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading ? 'Please wait...' : register ? 'Create account' : 'Sign in'}
+              {!loading && <ArrowRight size={16} aria-hidden="true" />}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            {register ? 'Already have an account?' : 'New to Sree Annapurna Agency?'}{' '}
+            <Link to={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create an account'}</Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function AccountPage() {
@@ -1485,7 +2119,6 @@ export function WholesalePage() {
               <p>Flexible commercial credit terms for verified registered trade partners.</p>
             </div>
           </div>
-          <span className="demo-label">Authorized FMCG Clearing &amp; Forwarding</span>
         </div>
 
         {submitted ? (
