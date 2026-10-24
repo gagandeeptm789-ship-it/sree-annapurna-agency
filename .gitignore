@@ -1,5 +1,34 @@
+# Dependencies
 node_modules/
+*/node_modules/
+
+# Production builds
 dist/
+*/dist/
+
+# Environment configurations and secret keys
 .env
 .env.*
 !.env.example
+*/.env
+*/.env.*
+!*/.env.example
+
+# Temporary and backup directories
+_backup_restructure/
+backup*/
+scratch/
+.system_generated/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS / Editor Files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

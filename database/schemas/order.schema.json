@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Order",
+  "description": "Customer order schema for Sree Annapurna Agency wholesale and retail orders",
+  "type": "object",
+  "required": ["orderId", "customer", "customerEmail", "phone", "deliveryDetails", "items", "total"],
+  "properties": {
+    "_id": {
+      "type": "string"
+    },
+    "orderId": {
+      "type": "string",
+      "description": "Human-readable order identifier (e.g. SAA-281930-492)"
+    },
+    "customer": {
+      "type": "string"
+    },
+    "customerEmail": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "deliveryDetails": {
+      "type": "object",
+      "required": ["name", "phone", "email", "address", "pincode"],
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "pincode": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["productId", "name", "quantity", "unitPrice"],
+        "properties": {
+          "productId": { "type": "string" },
+          "name": { "type": "string" },
+          "pack": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "unitPrice": { "type": "number", "minimum": 0 },
+          "image": { "type": "string" }
+        }
+      }
+    },
+    "total": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Pending", "Confirmed", "Processing", "Dispatched", "Delivered", "Cancelled"],
+      "default": "Pending"
+    },
+    "payment": {
+      "type": "string",
+      "enum": ["Pending", "Paid", "Refunded"],
+      "default": "Pending"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
+

@@ -316,6 +316,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         console.error('Could not save customer order id to local storage', err)
       }
 
+      // Asynchronously sync with Backend API if active
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: newOrder.customer,
+          phone: newOrder.phone,
+          email: newOrder.customerEmail,
+          address: newOrder.deliveryDetails?.address,
+          city: newOrder.deliveryDetails?.city,
+          pincode: newOrder.deliveryDetails?.pincode,
+          notes: newOrder.deliveryDetails?.notes,
+          items: newOrder.items,
+          total: newOrder.total,
+        }),
+      }).catch(() => {
+        // Silent catch: offline local mode handles everything smoothly
+      })
+
       return id
     },
     saveBrand: (brand) => setSaved((current) => ({ ...current, brands: current.brands.map((item) => item.id === brand.id ? brand : item) })),

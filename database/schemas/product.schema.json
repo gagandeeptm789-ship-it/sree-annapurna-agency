@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product",
+  "description": "Product document schema for Sree Annapurna Agency catalogue",
+  "type": "object",
+  "required": ["id", "name", "brandId", "category", "price", "sku"],
+  "properties": {
+    "_id": {
+      "type": "string",
+      "description": "MongoDB ObjectID"
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique slug-like product identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full commercial product name"
+    },
+    "brandId": {
+      "type": "string",
+      "description": "Foreign key reference to Brand.id"
+    },
+    "category": {
+      "type": "string",
+      "description": "FMCG category classification"
+    },
+    "description": {
+      "type": "string",
+      "description": "Authentic packaging and product description"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Wholesale / retail price in INR"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit code"
+    },
+    "stock": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Available inventory quantity"
+    },
+    "pack": {
+      "type": "string",
+      "description": "Retail packaging size (e.g. 300 g, 100 g, 450 ml, 1 unit)"
+    },
+    "image": {
+      "type": "string",
+      "description": "Public asset path to the verified packaged product image"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Visibility flag in customer storefront"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
+

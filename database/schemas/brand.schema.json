@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Brand",
+  "description": "Brand document schema for Sree Annapurna Agency verified brands",
+  "type": "object",
+  "required": ["id", "name", "slug"],
+  "properties": {
+    "_id": {
+      "type": "string",
+      "description": "MongoDB ObjectID"
+    },
+    "id": {
+      "type": "string",
+      "description": "Brand identifier key (e.g. swastik, rala, monkey-555)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Official company/brand name"
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL route slug"
+    },
+    "category": {
+      "type": "string",
+      "description": "High-level department (Food & spices, Home care, Pooja essentials)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Verified commercial brand description"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex brand theme accent colour"
+    },
+    "image": {
+      "type": "string",
+      "description": "Public asset path to verified brand emblem SVG"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
+
