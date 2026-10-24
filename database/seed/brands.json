@@ -1,0 +1,56 @@
+[
+  {
+    "id": "swastik",
+    "name": "Swastik Pickles & Masalas",
+    "slug": "swastik",
+    "category": "Food & spices",
+    "description": "Renowned for heritage South Indian culinary traditions, delivering authentic home-style pickles in sealed jars, aromatic sambar & rasam powder pouches, wholesome instant mixes, and sweet delights.",
+    "color": "#B94B35",
+    "image": "/images/brands/swastik.svg"
+  },
+  {
+    "id": "rala",
+    "name": "Rala Food Specialists",
+    "slug": "rala",
+    "category": "Food & spices",
+    "description": "Specialists in pure spice processing, providing high-potency single-origin spice powder pouches, rich chicken and meat blends, aromatic garam masala, and premium sun-dried kasuri methi.",
+    "color": "#D9A441",
+    "image": "/images/brands/rala.svg"
+  },
+  {
+    "id": "monkey-555",
+    "name": "Monkey 555",
+    "slug": "monkey-555",
+    "category": "Home care",
+    "description": "A household staple in sanitation and cleaning tools, trusted for durable natural grass and plastic brooms, absorbent mops, disinfectant floor phenyl, Ozone, and bleaching powder packaging.",
+    "color": "#174D35",
+    "image": "/images/brands/monkey-555.svg"
+  },
+  {
+    "id": "monkey-vvv",
+    "name": "Monkey VVV",
+    "slug": "monkey-vvv",
+    "category": "Home care",
+    "description": "Effective daily hygiene solutions featuring stain-removing active detergent washing powder packets and grease-cutting dishwashing bars and liquids.",
+    "color": "#205B6F",
+    "image": "/images/brands/monkey-vvv.svg"
+  },
+  {
+    "id": "aruna",
+    "name": "Aruna Masala",
+    "slug": "aruna",
+    "category": "Food & spices",
+    "description": "Cherished coastal and regional kitchen brand known for signature non-veg and curry masala packets, chicken masala, fish curry mix, packaged vermicelli, and instant gulab jamun mix.",
+    "color": "#A63820",
+    "image": "/images/brands/aruna.svg"
+  },
+  {
+    "id": "deeppam",
+    "name": "Deeppam Aarti",
+    "slug": "deeppam-aarti",
+    "category": "Pooja essentials",
+    "description": "Sacred, specially formulated lighting oil in sealed 450 ml bottles for divine rituals, temple worship, and auspicious home prayers, providing a radiant, long-lasting, soot-free flame.",
+    "color": "#C98A2C",
+    "image": "/images/brands/deeppam.svg"
+  }
+]
