@@ -11,6 +11,15 @@ function extractToken(req) {
   if (req.headers['x-auth-token']) {
     return req.headers['x-auth-token'].trim();
   }
+  if (req.query && req.query.authToken) {
+    return req.query.authToken.trim();
+  }
+  if (req.query && req.query.token) {
+    const t = req.query.token.trim();
+    if (t.split('.').length === 3) {
+      return t;
+    }
+  }
   return null;
 }
 

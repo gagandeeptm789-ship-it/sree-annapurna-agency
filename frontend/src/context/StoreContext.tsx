@@ -24,6 +24,8 @@ export interface StoreValue extends PersistedState {
   deleteOrder: (id: string) => void
   placeOrder: (data: OrderPlacementData) => string
   placeOrderAsync: (data: OrderPlacementData) => Promise<{ orderId: string; accessToken?: string; total: number }>
+  submitUpiPayment: (orderId: string, utrNumber: string, notes?: string) => Promise<{ success: boolean; message?: string }>
+  verifyUpiPayment: (orderId: string, action: 'approve' | 'reject', rejectReason?: string) => Promise<{ success: boolean; message?: string }>
   saveBrand: (brand: Brand) => void
   records: AdminRecord[]
   saveRecord: (record: AdminRecord) => void
@@ -68,7 +70,7 @@ function isDemoOrder(value: unknown): value is DemoOrder {
   return isRecord(value) && itemsValid && isText(value.id) && isText(value.customer) && isText(value.date) &&
     isFiniteNumber(value.total) && value.total >= 0 &&
     ['Pending', 'Confirmed', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].includes(String(value.status)) &&
-    ['Pending', 'Paid', 'Refunded'].includes(String(value.payment))
+    ['Pending', 'Paid', 'Failed', 'Refunded', 'Pending Verification'].includes(String(value.payment))
 }
 
 function isAdminRecord(value: unknown): value is AdminRecord {
@@ -510,6 +512,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const finalAccessToken = serverRes?.success && serverRes.accessToken ? serverRes.accessToken : localToken
       const finalTotal = serverRes?.success && serverRes.total !== undefined ? serverRes.total : data.total
 
+      const isUpi = data.paymentMethod === 'UPI' || data.paymentMethod === 'UPI / PhonePe'
+      const isOnline = data.paymentMethod === 'ONLINE'
+      const paymentMethodLabel = isOnline
+        ? 'Online Payment (UPI/Cards)'
+        : isUpi
+        ? 'UPI / PhonePe'
+        : 'Cash on Delivery / Agency Invoice'
+
+      const paymentDetails = isUpi ? {
+        provider: 'phonepe_upi',
+        payeeName: 'GAGAN DEEP',
+        payeeUpiNumber: '6360074675',
+        utrNumber: data.utrNumber ? data.utrNumber.trim() : '',
+        verificationStatus: 'Pending Verification',
+        submittedAt: new Date().toISOString(),
+      } : undefined
+
       const finalOrder: DemoOrder = {
         id: finalOrderId,
         accessToken: finalAccessToken,
@@ -530,7 +549,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         total: finalTotal,
         status: 'Pending',
         payment: 'Pending',
-        paymentMethod: data.paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : 'Cash on Delivery / Agency Invoice',
+        paymentMethod: paymentMethodLabel,
+        paymentDetails,
         items: orderItems,
       }
 
@@ -560,6 +580,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         accessToken: finalAccessToken,
         total: finalTotal,
       }
+    },
+    submitUpiPayment: async (orderId: string, utrNumber: string, notes?: string) => {
+      const res = await apiClient.submitUpiPayment(orderId, utrNumber, notes)
+      if (res.success) {
+        setSaved((current) => ({
+          ...current,
+          orders: current.orders.map((o) => {
+            if (o.id === orderId) {
+              return {
+                ...o,
+                paymentMethod: 'UPI / PhonePe',
+                payment: 'Pending',
+                paymentDetails: {
+                  ...(o.paymentDetails || {}),
+                  provider: 'phonepe_upi',
+                  payeeName: 'GAGAN DEEP',
+                  payeeUpiNumber: '6360074675',
+                  utrNumber: utrNumber.trim(),
+                  verificationStatus: 'Pending Verification',
+                  submittedAt: new Date().toISOString(),
+                  adminNotes: notes ? notes.trim() : '',
+                },
+              }
+            }
+            return o
+          }),
+        }))
+        return { success: true, message: res.message || 'UPI reference submitted. Payment pending verification.' }
+      }
+      return { success: false, message: res.message || 'Failed to submit UPI reference.' }
+    },
+    verifyUpiPayment: async (orderId: string, action: 'approve' | 'reject', rejectReason?: string) => {
+      const res = await apiClient.verifyUpiPayment(orderId, action, rejectReason)
+      if (res.success) {
+        setSaved((current) => ({
+          ...current,
+          orders: current.orders.map((o) => {
+            if (o.id === orderId) {
+              return {
+                ...o,
+                payment: action === 'approve' ? 'Paid' : 'Failed',
+                status: action === 'approve' ? 'Confirmed' : o.status,
+                paymentDetails: {
+                  ...(o.paymentDetails || {}),
+                  verificationStatus: action === 'approve' ? 'Verified' : 'Rejected',
+                  verifiedAt: new Date().toISOString(),
+                  verifiedBy: 'Owner',
+                  paidAt: action === 'approve' ? new Date().toISOString() : undefined,
+                  failureReason: action === 'reject' ? (rejectReason || 'Payment rejected by owner') : '',
+                },
+              }
+            }
+            return o
+          }),
+        }))
+        return { success: true, message: res.message || 'Payment updated successfully.' }
+      }
+      return { success: false, message: res.message || 'Failed to update payment status.' }
     },
     saveBrand: (brand) => setSaved((current) => ({
       ...current,

@@ -7,11 +7,11 @@ const {
   updateOrderStatus,
 } = require('../controllers/orderController');
 const { getInvoice, getInvoiceHtml, getInvoicePdf } = require('../controllers/invoiceController');
-const { protectOwner, optionalAuth } = require('../middleware/authMiddleware');
+const { protectCustomer, protectOwner, optionalAuth } = require('../middleware/authMiddleware');
 
 router.route('/')
   .get(optionalAuth, getOrders)
-  .post(optionalAuth, createOrder);
+  .post(protectCustomer, createOrder);
 
 router.route('/:id')
   .get(optionalAuth, getOrderById);

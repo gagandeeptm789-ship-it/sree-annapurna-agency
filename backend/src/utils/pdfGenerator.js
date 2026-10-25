@@ -43,7 +43,9 @@ function generateInvoicePdf(order) {
   const pincode = del.pincode || '';
   const items = order.items || [];
   const total = Number(order.total) || 0;
-  const paymentMethod = order.paymentMethod || 'Cash on Delivery / Agency Terms';
+  const rawPaymentMethod = order.paymentMethod || 'Cash on Delivery / Agency Terms';
+  const utr = order.paymentDetails?.utrNumber ? ` (Ref: ${order.paymentDetails.utrNumber})` : '';
+  const paymentMethod = `${rawPaymentMethod}${utr}`.substring(0, 32);
   const paymentStatus = order.payment || 'Pending';
   const orderStatus = order.status || 'Pending';
 
@@ -103,7 +105,12 @@ function generateInvoicePdf(order) {
   stream += drawText('F1', 9.5, 435, 718, paymentMethod, 0.12, 0.15, 0.14);
 
   stream += drawText('F2', 9, 330, 698, 'PAYMENT STATUS:', 0.4, 0.45, 0.42);
-  const payColor = paymentStatus.toLowerCase() === 'paid' ? [0.08, 0.5, 0.2] : [0.75, 0.4, 0.05];
+  let payColor = [0.75, 0.4, 0.05];
+  if (paymentStatus.toLowerCase() === 'paid') {
+    payColor = [0.08, 0.5, 0.2];
+  } else if (paymentStatus.toLowerCase().includes('fail')) {
+    payColor = [0.75, 0.1, 0.1];
+  }
   stream += drawText('F2', 9.5, 435, 698, paymentStatus.toUpperCase(), payColor[0], payColor[1], payColor[2]);
 
   // Customer Delivery Details Box

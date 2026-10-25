@@ -86,14 +86,14 @@ exports.getOrderById = async (req, res, next) => {
 
     // Access authorization check
     const isOwnerAuthorized = isOwner;
-    const isCustomerAuthorized = userEmail && order.customerEmail.toLowerCase() === userEmail;
+    const isCustomerAuthorized = userEmail && order.customerEmail && order.customerEmail.toLowerCase() === userEmail;
+    const isUserIdAuthorized = req.user && req.user.id && order.user && String(order.user) === String(req.user.id);
     const isTokenAuthorized = queryToken && order.accessToken && queryToken === order.accessToken;
-    const isPhoneEmailAuthorized = queryPhone && queryEmail && order.phone === queryPhone && order.customerEmail.toLowerCase() === queryEmail;
 
-    if (!isOwnerAuthorized && !isCustomerAuthorized && !isTokenAuthorized && !isPhoneEmailAuthorized) {
+    if (!isOwnerAuthorized && !isCustomerAuthorized && !isUserIdAuthorized && !isTokenAuthorized) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied: Valid order access token or account sign-in required to inspect this order.',
+        message: 'Access denied: You are only permitted to inspect orders placed by your account.',
       });
     }
 
@@ -106,22 +106,35 @@ exports.getOrderById = async (req, res, next) => {
   }
 };
 
-// @desc    Create new order (Guest checkout or registered customer) with server-side price validation & stock deduction
+// @desc    Create new order (Requires authenticated customer account) with server-side price validation & stock deduction
 // @route   POST /api/orders
 exports.createOrder = async (req, res, next) => {
   try {
-    const { customerName, phone, email, address, city, pincode, notes, items, paymentMethod } = req.body;
-
-    if (!customerName || !phone || !email || !address || !pincode || !items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
+    // 0. Enforce mandatory customer sign-in on backend
+    if (!req.user || (req.user.role !== 'customer' && req.user.role !== 'owner')) {
+      return res.status(401).json({
         success: false,
-        message: 'Missing required checkout details or empty basket items.',
+        message: 'Customer sign-in required. Please sign in or register before completing checkout.',
       });
     }
 
-    const cleanEmail = (req.user && req.user.email ? req.user.email : email).trim().toLowerCase();
+    const { customerName, phone, email, address, city, pincode, notes, items, paymentMethod } = req.body;
+
+    if (!phone || !address || !pincode || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required delivery details or empty basket items.',
+      });
+    }
+
+    const cleanEmail = (req.user.email || email || '').trim().toLowerCase();
     const cleanPhone = phone.trim();
-    const cleanName = customerName.trim();
+    const cleanName = (customerName || req.user.name || '').trim();
+    const customerUserId = req.user.id || req.user._id || null;
+
+    if (!cleanName) {
+      return res.status(400).json({ success: false, message: 'Customer name is required.' });
+    }
 
     if (cleanPhone.length < 10) {
       return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit phone number.' });
@@ -184,12 +197,30 @@ exports.createOrder = async (req, res, next) => {
     const orderId = `SAA-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
     const accessToken = crypto.randomBytes(24).toString('hex');
     const isGuest = !req.user;
-    const finalPaymentMethod = paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : 'Cash on Delivery / Agency Invoice';
+    let finalPaymentMethod = 'Cash on Delivery / Agency Invoice';
+    let paymentDetails = {};
+    let paymentStatus = 'Pending';
+
+    if (paymentMethod === 'ONLINE') {
+      finalPaymentMethod = 'Online Payment (UPI/Cards)';
+    } else if (paymentMethod === 'UPI' || paymentMethod === 'UPI / PhonePe') {
+      finalPaymentMethod = 'UPI / PhonePe';
+      paymentStatus = 'Pending';
+      paymentDetails = {
+        provider: 'phonepe_upi',
+        payeeName: 'GAGAN DEEP',
+        payeeUpiNumber: '6360074675',
+        utrNumber: req.body.utrNumber ? String(req.body.utrNumber).trim() : '',
+        verificationStatus: 'Pending Verification',
+        submittedAt: new Date(),
+      };
+    }
 
     const orderPayload = {
       orderId,
       accessToken,
-      isGuest,
+      user: customerUserId,
+      isGuest: false,
       customer: cleanName,
       customerEmail: cleanEmail,
       phone: cleanPhone,
@@ -206,8 +237,8 @@ exports.createOrder = async (req, res, next) => {
       total: computedTotal,
       status: 'Pending',
       paymentMethod: finalPaymentMethod,
-      payment: 'Pending',
-      paymentDetails: {},
+      payment: paymentStatus,
+      paymentDetails,
       date: new Date(),
     };
 
@@ -253,7 +284,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    const allowedPayments = ['Pending', 'Paid', 'Failed', 'Refunded'];
+    const allowedPayments = ['Pending', 'Paid', 'Failed', 'Refunded', 'Pending Verification'];
     if (payment && !allowedPayments.includes(payment)) {
       return res.status(400).json({
         success: false,

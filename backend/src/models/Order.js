@@ -28,10 +28,18 @@ const DeliveryDetailsSchema = new mongoose.Schema(
 const PaymentDetailsSchema = new mongoose.Schema(
   {
     transactionId: { type: String, default: '' },
-    provider: { type: String, default: '' }, // 'razorpay' | 'sandbox' | 'cod'
+    provider: { type: String, default: '' }, // 'razorpay' | 'sandbox' | 'cod' | 'phonepe_upi'
     signature: { type: String, default: '' },
     paidAt: { type: Date },
     failureReason: { type: String, default: '' },
+    utrNumber: { type: String, default: '' },
+    payeeName: { type: String, default: '' },
+    payeeUpiNumber: { type: String, default: '' },
+    verificationStatus: { type: String, default: '' }, // 'Pending Verification' | 'Verified' | 'Rejected'
+    submittedAt: { type: Date },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String, default: '' },
+    adminNotes: { type: String, default: '' },
   },
   { _id: false }
 );
@@ -47,6 +55,11 @@ const OrderSchema = new mongoose.Schema(
     accessToken: {
       type: String,
       required: true,
+      index: true,
+    },
+    user: {
+      type: String,
+      default: null,
       index: true,
     },
     isGuest: {
@@ -89,7 +102,7 @@ const OrderSchema = new mongoose.Schema(
     },
     payment: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
+      enum: ['Pending', 'Paid', 'Failed', 'Refunded', 'Pending Verification'],
       default: 'Pending',
       index: true,
     },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, Copy, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, QrCode, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { categories } from '../data/catalog'
 import type { Product } from '../types'
@@ -772,7 +772,7 @@ export function ProductPage() {
 }
 
 export function CartPage() {
-  const { cart, products, brands, setCartQuantity, removeFromCart } = useStore()
+  const { cart, products, brands, setCartQuantity, removeFromCart, customer } = useStore()
   const details = cart.map((line) => ({
     line,
     product: products.find((product) => product.id === line.productId)
@@ -863,10 +863,18 @@ export function CartPage() {
           <div><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
           <div><span>Estimated Delivery</span><strong>Standard Agency Logistics</strong></div>
           <div className="summary-total"><span>Total Payable</span><strong>{money(subtotal)}</strong></div>
-          <Link className="button button-primary full-button" to="/checkout">
-            Proceed to checkout
+          <Link
+            className="button button-primary full-button"
+            to={customer ? '/checkout' : '/login?redirect=/checkout'}
+          >
+            {customer ? 'Proceed to checkout' : 'Sign in to checkout'}
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
+          {!customer && (
+            <p className="summary-note" style={{ marginTop: '10px', fontSize: '0.8125rem', color: '#68716B' }}>
+              🔒 Customer sign-in required before placing an order. Your basket items are preserved.
+            </p>
+          )}
           <Link className="continue-link" to="/shop">
             <ArrowLeft size={15} /> Continue shopping
           </Link>
@@ -877,18 +885,45 @@ export function CartPage() {
 }
 
 export function CheckoutPage() {
+  const navigate = useNavigate()
   const { cart, products, brands, removeFromCart, notify, placeOrderAsync, updateOrder, customer } = useStore()
+
+  // Mandatory customer sign-in: Redirect unauthenticated guests to login with redirect back to checkout
+  useEffect(() => {
+    if (!customer) {
+      notify('Please sign in or create an account to proceed with checkout.')
+      navigate('/login?redirect=/checkout', { replace: true })
+    }
+  }, [customer, navigate, notify])
+
   const [placed, setPlaced] = useState(false)
   const [orderReference, setOrderReference] = useState('')
   const [orderAccessToken, setOrderAccessToken] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD')
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE' | 'UPI'>('COD')
+  const [utrNumber, setUtrNumber] = useState('')
+  const [upiNotes, setUpiNotes] = useState('')
+  const [copiedNumber, setCopiedNumber] = useState(false)
+
+  const copyUpiNumber = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText('6360074675')
+      setCopiedNumber(true)
+      setTimeout(() => setCopiedNumber(false), 2500)
+      notify('UPI Number 6360074675 copied to clipboard.')
+    }
+  }
   const [paymentStatus, setPaymentStatus] = useState<'Pending' | 'Paid' | 'Failed'>('Pending')
   const [orderStatus, setOrderStatus] = useState<string>('Pending')
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false)
   const [sandboxModalOpen, setSandboxModalOpen] = useState(false)
-  const [sandboxData, setSandboxData] = useState<{ orderId: string; amount: number } | null>(null)
+  const [sandboxData, setSandboxData] = useState<{
+    orderId: string
+    amount: number
+    sandboxTransactionId?: string
+    testSignature?: string
+  } | null>(null)
 
   const [name, setName] = useState(customer?.name ?? '')
   const [phone, setPhone] = useState('')
@@ -897,6 +932,13 @@ export function CheckoutPage() {
   const [city, setCity] = useState('')
   const [pincode, setPincode] = useState('')
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    if (customer) {
+      if (!name && customer.name) setName(customer.name)
+      if (!email && customer.email) setEmail(customer.email)
+    }
+  }, [customer])
 
   const [placedSnapshot, setPlacedSnapshot] = useState<{
     items: { product: Product; quantity: number; pack: string }[]
@@ -922,7 +964,33 @@ export function CheckoutPage() {
   const handleDownloadInvoice = async () => {
     if (!orderReference) return
     setIsDownloadingInvoice(true)
-    const res = await apiClient.downloadInvoicePdf(orderReference, orderAccessToken || undefined)
+    const fallbackOrder = placedSnapshot ? {
+      orderId: orderReference,
+      accessToken: orderAccessToken,
+      customer: placedSnapshot.delivery.name,
+      customerEmail: placedSnapshot.delivery.email,
+      phone: placedSnapshot.delivery.phone,
+      deliveryDetails: placedSnapshot.delivery,
+      items: placedSnapshot.items.map((i) => ({
+        name: i.product.name,
+        pack: i.pack,
+        quantity: i.quantity,
+        unitPrice: i.product.price,
+      })),
+      total: placedSnapshot.total,
+      status: orderStatus,
+      payment: paymentStatus,
+      paymentMethod: paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : paymentMethod === 'UPI' ? 'UPI / PhonePe' : 'Cash on Delivery / Agency Invoice',
+      paymentDetails: paymentMethod === 'UPI' ? {
+        provider: 'phonepe_upi',
+        payeeName: 'GAGAN DEEP',
+        payeeUpiNumber: '6360074675',
+        utrNumber: utrNumber.trim(),
+        verificationStatus: 'Pending Verification',
+      } : undefined,
+    } : undefined
+
+    const res = await apiClient.downloadInvoicePdf(orderReference, orderAccessToken || undefined, fallbackOrder)
     setIsDownloadingInvoice(false)
     if (res.success) {
       notify('Official Sree Annapurna Agency PDF invoice downloaded.')
@@ -934,10 +1002,10 @@ export function CheckoutPage() {
   const handleSandboxSuccess = async () => {
     if (!sandboxData) return
     setIsProcessingPayment(true)
-    const txnId = `SANDBOX_TXN_${Date.now()}`
     const verified = await apiClient.verifyPayment({
       orderId: sandboxData.orderId,
-      sandboxTransactionId: txnId,
+      sandboxTransactionId: sandboxData.sandboxTransactionId,
+      testSignature: sandboxData.testSignature,
     })
     setIsProcessingPayment(false)
     setSandboxModalOpen(false)
@@ -951,14 +1019,14 @@ export function CheckoutPage() {
       setPaymentStatus('Failed')
       updateOrder(sandboxData.orderId, { payment: 'Failed' })
       setPlaced(true)
-      notify('Payment verification failed.')
+      notify('Payment verification failed on the server.')
     }
   }
 
   const handleSandboxFailure = async () => {
     if (!sandboxData) return
     setIsProcessingPayment(true)
-    await apiClient.recordPaymentFailure(sandboxData.orderId, 'Simulated payment cancelled or failed by user')
+    await apiClient.recordPaymentFailure(sandboxData.orderId, 'Customer cancelled or dismissed test transaction')
     setIsProcessingPayment(false)
     setSandboxModalOpen(false)
     setPaymentStatus('Failed')
@@ -1054,11 +1122,13 @@ export function CheckoutPage() {
       if (paymentMethod === 'ONLINE') {
         // Initiate Razorpay payment
         const paymentOrder = await apiClient.createPaymentOrder(finalOrderId)
-        if (paymentOrder && paymentOrder.mode === 'sandbox_test_gateway') {
-          // Open interactive sandbox payment simulation
+        if (paymentOrder && (paymentOrder.mode === 'sandbox_test_gateway' || paymentOrder.mode === 'test_mode')) {
+          // Open interactive test payment simulation
           setSandboxData({
             orderId: finalOrderId,
-            amount: paymentOrder.amount || subtotal,
+            amount: paymentOrder.displayAmount || paymentOrder.amount ? (paymentOrder.displayAmount || (paymentOrder.amount / 100)) : subtotal,
+            sandboxTransactionId: paymentOrder.sandboxTransactionId,
+            testSignature: paymentOrder.testSignature,
           })
           setSandboxModalOpen(true)
           setIsProcessingPayment(false)
@@ -1118,6 +1188,8 @@ export function CheckoutPage() {
         setSandboxData({
           orderId: finalOrderId,
           amount: subtotal,
+          sandboxTransactionId: paymentOrder?.sandboxTransactionId,
+          testSignature: paymentOrder?.testSignature,
         })
         setSandboxModalOpen(true)
         setIsProcessingPayment(false)
@@ -1606,6 +1678,35 @@ export function CustomerOrdersPage() {
   const { getCustomerOrders, customer } = useStore()
   const orders = getCustomerOrders()
 
+  if (!customer) {
+    return (
+      <div className="container page-space">
+        <div className="breadcrumbs">
+          <Link to="/">Home</Link>
+          <span>/</span>
+          <Link to="/account">Account</Link>
+          <span>/</span>
+          <span>My Orders</span>
+        </div>
+        <div className="auth-prompt" style={{ textAlign: 'center', padding: '60px 20px', background: '#faf8f2', borderRadius: '8px', border: '1px solid #e7e8e2', margin: '40px auto', maxWidth: '640px' }}>
+          <p className="eyebrow" style={{ color: '#B52B24', fontWeight: 700 }}>Customer Sign-in Required</p>
+          <h1 style={{ fontSize: '1.75rem', margin: '8px 0 12px 0' }}>View Your Order History</h1>
+          <p style={{ color: '#68716B', marginBottom: '24px' }}>
+            Please sign in to your Sree Annapurna Agency account to view your past orders, delivery tracking, and download official PDF invoices.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link className="button button-primary" to="/login?redirect=/account/orders">
+              Sign In <ArrowRight size={16} />
+            </Link>
+            <Link className="button button-outline" to="/register?redirect=/account/orders">
+              Create an Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container page-space">
       <div className="breadcrumbs">
@@ -1620,7 +1721,7 @@ export function CustomerOrdersPage() {
         <div>
           <p className="eyebrow">Customer Account</p>
           <h1>My Orders</h1>
-          <p>{customer ? `Orders for ${customer.name} (${customer.email})` : 'Orders placed in this shopping session'}</p>
+          <p>Orders for {customer.name} ({customer.email})</p>
         </div>
         <Link to="/shop" className="button button-outline button-small">
           Shop catalogue <ArrowRight size={14} />
@@ -1667,11 +1768,20 @@ export function CustomerOrdersPage() {
                 </div>
               </div>
 
-              <div className="customer-order-footer">
+              <div className="customer-order-footer" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <Link to={`/account/orders/${order.id}`} className="button button-dark button-small">
                   <Truck size={14} />
                   Track Order
                 </Link>
+                <button
+                  type="button"
+                  className="button button-outline button-small"
+                  onClick={() => apiClient.downloadInvoicePdf(order.id)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <FileText size={14} />
+                  Invoice (PDF)
+                </button>
               </div>
             </article>
           ))}
@@ -1685,17 +1795,16 @@ export function OrderDetailPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const tokenParam = searchParams.get('token')
-  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, notify } = useStore()
+  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, customer, notify } = useStore()
   const [isDownloading, setIsDownloading] = useState(false)
   const order = orders.find((item) => item.id === id)
   const myOrders = getCustomerOrders()
 
   if (!order) return <NotFoundPage />
 
-  // Customer isolation check (owner, customer order list, or matching guest token)
-  const isAuthorized = isOwnerAuthenticated ||
-    myOrders.some((o) => o.id === order.id) ||
-    (tokenParam && (order.accessToken === tokenParam || !order.accessToken))
+  // Customer isolation check (owner, authenticated customer owning this order, or matching guest token)
+  const isCustomerOwner = customer && order.customerEmail && order.customerEmail.toLowerCase() === customer.email.toLowerCase()
+  const isAuthorized = isOwnerAuthenticated || isCustomerOwner || myOrders.some((o) => o.id === order.id) || (tokenParam && order.accessToken === tokenParam)
 
   if (!isAuthorized) {
     return (
@@ -1706,10 +1815,10 @@ export function OrderDetailPage() {
         <div className="unauthorized-order-state">
           <p className="eyebrow">Access Notice</p>
           <h2>Order Record Restricted</h2>
-          <p>This order is associated with another customer account. You can only inspect orders placed by your account.</p>
+          <p>This order is associated with another customer account. Please sign in with the customer account used to place this order.</p>
           <div className="auth-buttons">
-            <Link to="/account/orders" className="button button-dark">View My Orders</Link>
-            <Link to="/shop" className="button button-outline">Return to Shop</Link>
+            <Link to="/login" className="button button-dark">Sign In</Link>
+            <Link to="/account/orders" className="button button-outline">View My Orders</Link>
           </div>
         </div>
       </div>
@@ -1873,6 +1982,10 @@ export function OrderDetailPage() {
 export function AuthPage({ register = false }: { register?: boolean }) {
   const { signInLocal, signInRemote, registerRemote, notify } = useStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTarget = searchParams.get('redirect') || '/account'
+  const isFromCheckout = redirectTarget === '/checkout'
+
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1898,32 +2011,32 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         const res = await registerRemote({ name, email, password, phone })
         if (res.success) {
           notify(`Welcome to Sree Annapurna Agency, ${name}!`)
-          navigate('/account')
+          navigate(redirectTarget)
           return
         } else {
           // Fallback to local session
           signInLocal(name, email)
           notify(`Signed in as ${name}`)
-          navigate('/account')
+          navigate(redirectTarget)
           return
         }
       } else {
         const res = await signInRemote(email, password)
         if (res.success) {
           notify('Signed in successfully!')
-          navigate('/account')
+          navigate(redirectTarget)
           return
         } else {
           // Fallback to local session
           signInLocal(name || email.split('@')[0], email)
           notify(`Signed in as ${email}`)
-          navigate('/account')
+          navigate(redirectTarget)
           return
         }
       }
     } catch {
       signInLocal(name || email.split('@')[0], email)
-      navigate('/account')
+      navigate(redirectTarget)
     } finally {
       setLoading(false)
     }
@@ -1964,17 +2077,25 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         </aside>
 
         <div className="auth-card">
-          <div className="auth-card-shop-header" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #e7e8e2' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f5eee6', color: '#B52B24', padding: '3px 10px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '8px' }}>
+          <div className="auth-card-shop-header" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #e7e8e2', textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f5eee6', color: '#B52B24', padding: '4px 12px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <ShieldCheck size={13} />
               OFFICIAL CUSTOMER PORTAL
             </div>
-            <h2 style={{ fontFamily: 'var(--font-heading, serif)', fontSize: '1.65rem', margin: '4px 0 2px 0', color: '#173F35', letterSpacing: '-0.01em', fontWeight: 700 }}>
+            <h2 style={{ fontFamily: 'var(--font-heading, serif)', fontSize: '1.75rem', margin: '4px 0 4px 0', color: '#173F35', letterSpacing: '-0.02em', fontWeight: 800 }}>
               SREE ANNAPURNA AGENCY
             </h2>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: '#68716B' }}>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#68716B', fontWeight: 500 }}>
               Wholesale &amp; Retail Consumer Goods Distribution · Shimoga
             </p>
           </div>
+
+          {isFromCheckout && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', background: '#fdf2f2', border: '1px solid #f8b4b4', borderRadius: '6px', marginBottom: '18px', fontSize: '0.8125rem', color: '#9b1c1c' }}>
+              <ShoppingBag size={18} style={{ flexShrink: 0 }} />
+              <span><strong>Sign-in required for checkout:</strong> Please sign in or register to complete your order. Your basket items are safely preserved.</span>
+            </div>
+          )}
 
           <div>
             <h1 style={{ fontSize: '1.35rem', marginBottom: '4px' }}>{register ? 'Create an account' : 'Sign in'}</h1>
@@ -2057,7 +2178,9 @@ export function AuthPage({ register = false }: { register?: boolean }) {
 
           <p className="auth-switch">
             {register ? 'Already have an account?' : 'New to Sree Annapurna Agency?'}{' '}
-            <Link to={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create an account'}</Link>
+            <Link to={register ? `/login${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}` : `/register${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`}>
+              {register ? 'Sign in' : 'Create an account'}
+            </Link>
           </p>
         </div>
       </div>

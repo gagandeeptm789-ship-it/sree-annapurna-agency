@@ -31,33 +31,72 @@ function formatDate(dateValue) {
 // Fetch order safely with multi-tiered authorization check (Owner, Customer, Guest Token, Phone/Email verification)
 async function getAuthorizedOrder(id, reqUser, query = {}, headers = {}) {
   let order = null;
+  const cleanId = String(id || '').trim();
+
   if (mongoose.connection.readyState === 1) {
-    order = await Order.findOne({ $or: [{ orderId: id }, { _id: mongoose.isValidObjectId(id) ? id : null }] }).lean();
+    order = await Order.findOne({
+      $or: [
+        { orderId: cleanId },
+        { orderId: new RegExp(`^${cleanId}$`, 'i') },
+        { _id: mongoose.isValidObjectId(cleanId) ? cleanId : null },
+      ],
+    }).lean();
   } else {
     const memoryOrders = require('./orderController').memoryOrders || [];
-    order = memoryOrders.find((o) => o.orderId === id || o.id === id);
+    order = memoryOrders.find(
+      (o) => (o.orderId && o.orderId.toLowerCase() === cleanId.toLowerCase()) ||
+             (o.id && o.id.toLowerCase() === cleanId.toLowerCase())
+    );
   }
 
   if (!order) return null;
 
   const isOwner = reqUser && reqUser.role === 'owner';
-  const customerEmail = reqUser && reqUser.email ? reqUser.email.toLowerCase() : null;
+  const customerEmail = reqUser && reqUser.email ? reqUser.email.trim().toLowerCase() : null;
   const guestToken = query.token || headers['x-order-token'];
   const verifyPhone = query.phone ? query.phone.trim() : null;
   const verifyEmail = query.email ? query.email.trim().toLowerCase() : null;
 
   // Check valid authorization conditions
-  const isOwnerAuthorized = isOwner;
-  const isCustomerAuthorized = customerEmail && order.customerEmail.toLowerCase() === customerEmail;
-  const isTokenAuthorized = guestToken && order.accessToken && guestToken === order.accessToken;
-  const isPhoneEmailAuthorized = verifyPhone && verifyEmail && order.phone === verifyPhone && order.customerEmail.toLowerCase() === verifyEmail;
+  const isOwnerAuthorized = Boolean(isOwner);
+  const isCustomerAuthorized = Boolean(customerEmail && order.customerEmail && order.customerEmail.trim().toLowerCase() === customerEmail);
+  const isUserIdAuthorized = Boolean(reqUser && reqUser.id && order.user && String(order.user) === String(reqUser.id));
+  const isTokenAuthorized = Boolean(guestToken && order.accessToken && guestToken === order.accessToken);
+  const isPhoneAuthorized = Boolean(
+    (verifyPhone && order.phone && order.phone.replace(/\D/g, '') === verifyPhone.replace(/\D/g, '')) ||
+    (reqUser && reqUser.phone && order.phone && order.phone.replace(/\D/g, '') === reqUser.phone.replace(/\D/g, ''))
+  );
+  const isEmailQueryAuthorized = Boolean(verifyEmail && order.customerEmail && order.customerEmail.trim().toLowerCase() === verifyEmail);
 
-  if (!isOwnerAuthorized && !isCustomerAuthorized && !isTokenAuthorized && !isPhoneEmailAuthorized) {
+  if (!isOwnerAuthorized && !isCustomerAuthorized && !isUserIdAuthorized && !isTokenAuthorized && !isPhoneAuthorized && !isEmailQueryAuthorized) {
     return 'UNAUTHORIZED';
   }
 
   return order;
 }
+
+// @desc    Generate PDF directly from order data payload
+// @route   POST /api/invoices/generate-pdf
+exports.generatePdfDirect = async (req, res, next) => {
+  try {
+    const orderData = req.body.order || req.body;
+    if (!orderData || (!orderData.items && !orderData.total)) {
+      return res.status(400).json({ success: false, message: 'Invalid order data provided for PDF generation.' });
+    }
+
+    const pdfBuffer = generateInvoicePdf(orderData);
+    const filename = `Invoice-${orderData.orderId || orderData.id || 'ORDER'}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    return res.end(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Download authentic PDF invoice
 // @route   GET /api/orders/:id/invoice/pdf (or /api/invoices/:id/pdf)

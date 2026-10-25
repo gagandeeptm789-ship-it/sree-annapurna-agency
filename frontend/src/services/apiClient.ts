@@ -272,14 +272,28 @@ class ApiClient {
 
   // --- Invoices ---
   getInvoiceHtmlUrl(orderId: string, token?: string): string {
-    return `${this.baseUrl}/orders/${orderId}/invoice/html${token ? `?token=${encodeURIComponent(token)}` : ''}`
+    const ownerToken = this.getOwnerToken()
+    const customerToken = this.getCustomerToken()
+    const query = new URLSearchParams()
+    if (token) query.set('token', token)
+    if (ownerToken) query.set('authToken', ownerToken)
+    else if (customerToken) query.set('authToken', customerToken)
+    const qs = query.toString() ? `?${query.toString()}` : ''
+    return `${this.baseUrl}/orders/${orderId}/invoice/html${qs}`
   }
 
   getInvoicePdfUrl(orderId: string, token?: string): string {
-    return `${this.baseUrl}/orders/${orderId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`
+    const ownerToken = this.getOwnerToken()
+    const customerToken = this.getCustomerToken()
+    const query = new URLSearchParams()
+    if (token) query.set('token', token)
+    if (ownerToken) query.set('authToken', ownerToken)
+    else if (customerToken) query.set('authToken', customerToken)
+    const qs = query.toString() ? `?${query.toString()}` : ''
+    return `${this.baseUrl}/orders/${orderId}/invoice/pdf${qs}`
   }
 
-  async downloadInvoicePdf(orderId: string, token?: string): Promise<{ success: boolean; message?: string }> {
+  async downloadInvoicePdf(orderId: string, token?: string, fallbackOrder?: any): Promise<{ success: boolean; message?: string }> {
     try {
       const headers: Record<string, string> = {}
       const ownerToken = this.getOwnerToken()
@@ -289,7 +303,20 @@ class ApiClient {
       if (token) headers['x-order-token'] = token
 
       const url = this.getInvoicePdfUrl(orderId, token)
-      const res = await fetch(url, { headers })
+      let res = await fetch(url, { headers })
+
+      if (!res.ok && (res.status === 404 || res.status === 400) && fallbackOrder) {
+        // Fallback: Generate PDF directly if order is not found on backend (e.g. offline dev or memory reset)
+        res = await fetch(`${this.baseUrl}/invoices/generate-pdf`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify(fallbackOrder),
+        })
+      }
+
       if (!res.ok) {
         const errJson = await res.json().catch(() => null)
         return {
@@ -299,14 +326,21 @@ class ApiClient {
       }
 
       const blob = await res.blob()
+      if (blob.size === 0) {
+        return { success: false, message: 'Received empty PDF from server.' }
+      }
+
       const blobUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
+      a.style.display = 'none'
       a.href = blobUrl
       a.download = `Invoice-${orderId}.pdf`
       document.body.appendChild(a)
       a.click()
-      a.remove()
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000)
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a)
+        window.URL.revokeObjectURL(blobUrl)
+      }, 60000)
 
       return { success: true }
     } catch (err: any) {
@@ -328,12 +362,35 @@ class ApiClient {
     return res.ok && res.data ? res.data : null
   }
 
+  async submitUpiPayment(orderId: string, utrNumber: string, notes?: string): Promise<{ success: boolean; message?: string; data?: any }> {
+    const res = await this.request<any>('/payments/submit-utr', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, utrNumber, notes }),
+    })
+    if (res.ok && res.data?.success) {
+      return { success: true, message: res.data.message, data: res.data.data }
+    }
+    return { success: false, message: res.data?.message || 'Failed to submit UPI payment reference.' }
+  }
+
+  async verifyUpiPayment(orderId: string, action: 'approve' | 'reject', rejectReason?: string): Promise<{ success: boolean; message?: string; data?: any }> {
+    const res = await this.request<any>('/payments/verify-upi', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, action, rejectReason }),
+    })
+    if (res.ok && res.data?.success) {
+      return { success: true, message: res.data.message, data: res.data.data }
+    }
+    return { success: false, message: res.data?.message || 'Failed to verify UPI payment.' }
+  }
+
   async verifyPayment(params: {
     orderId: string
     razorpayPaymentId?: string
     razorpayOrderId?: string
     razorpaySignature?: string
     sandboxTransactionId?: string
+    testSignature?: string
   }): Promise<boolean> {
     const res = await this.request<any>('/payments/verify', {
       method: 'POST',
