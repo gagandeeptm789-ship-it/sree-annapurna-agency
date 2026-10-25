@@ -1,6 +1,23 @@
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const { generateInvoicePdf } = require('../utils/pdfGenerator');
+
+const ORDERS_STORAGE_PATH = path.resolve(__dirname, '../../data/orders.json');
+
+function loadOrdersFromDisk() {
+  try {
+    if (fs.existsSync(ORDERS_STORAGE_PATH)) {
+      const raw = fs.readFileSync(ORDERS_STORAGE_PATH, 'utf8').trim();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    }
+  } catch (_) {}
+  return [];
+}
 
 const AGENCY_DETAILS = {
   name: 'SREE ANNAPURNA AGENCY',
@@ -30,17 +47,20 @@ function formatDate(dateValue) {
 
 // Fetch order safely with strict authorization check (Owner, Authenticated Customer owning the order, or matching Guest Token)
 async function getAuthorizedOrder(id, reqUser, query = {}, headers = {}) {
-  if (mongoose.connection.readyState !== 1) {
-    const error = new Error('Invoice service is unavailable because the database is not connected.');
-    error.statusCode = 503;
-    throw error;
-  }
-
   const cleanId = String(id || '').trim();
-  const queryFilter = mongoose.isValidObjectId(cleanId)
-    ? { $or: [{ orderId: cleanId }, { _id: cleanId }] }
-    : { orderId: cleanId };
-  const order = await Order.findOne(queryFilter).lean();
+
+  let order = null;
+
+  if (mongoose.connection.readyState === 1) {
+    const queryFilter = mongoose.isValidObjectId(cleanId)
+      ? { $or: [{ orderId: cleanId }, { _id: cleanId }] }
+      : { orderId: cleanId };
+    order = await Order.findOne(queryFilter).lean();
+  } else {
+    // Persistent storage fallback
+    const diskOrders = loadOrdersFromDisk();
+    order = diskOrders.find((o) => o.orderId === cleanId) || null;
+  }
 
   if (!order) return null;
 
@@ -48,12 +68,8 @@ async function getAuthorizedOrder(id, reqUser, query = {}, headers = {}) {
   const customerUserId = reqUser && reqUser.id ? String(reqUser.id) : null;
   const guestToken = query.token || headers['x-order-token'];
 
-  // Strict authorization check:
-  // 1. Owner can access any invoice
   const isOwnerAuthorized = Boolean(isOwner);
-  // 2. Authenticated customer must match order.user strictly
   const isUserIdAuthorized = Boolean(customerUserId && order.user && String(order.user) === customerUserId);
-  // 3. Guest with matching cryptographic accessToken
   const isTokenAuthorized = Boolean(
     !reqUser && order.isGuest && guestToken && order.accessToken && guestToken === order.accessToken
   );

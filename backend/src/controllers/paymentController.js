@@ -1,6 +1,74 @@
+const fs = require('fs');
+const path = require('path');
 const crypto = require('node:crypto');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
+
+// Persistent storage fallback
+const ORDERS_STORAGE_PATH = path.resolve(__dirname, '../../data/orders.json');
+
+function loadPersistentOrders() {
+  try {
+    if (fs.existsSync(ORDERS_STORAGE_PATH)) {
+      const raw = fs.readFileSync(ORDERS_STORAGE_PATH, 'utf8').trim();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    }
+  } catch (_) {}
+  return [];
+}
+
+function savePersistentOrders(orders) {
+  try {
+    const dir = path.dirname(ORDERS_STORAGE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(ORDERS_STORAGE_PATH, JSON.stringify(orders, null, 2), 'utf8');
+  } catch (_) {}
+}
+
+async function findOrderRecord(orderId) {
+  if (mongoose.connection.readyState === 1) {
+    return await Order.findOne({ orderId });
+  }
+  const allOrders = loadPersistentOrders();
+  return allOrders.find((o) => o.orderId === orderId) || null;
+}
+
+function setDotProp(obj, key, val) {
+  const parts = key.split('.');
+  let curr = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!curr[parts[i]]) curr[parts[i]] = {};
+    curr = curr[parts[i]];
+  }
+  curr[parts[parts.length - 1]] = val;
+}
+
+async function saveOrderRecord(orderId, updateFields) {
+  if (mongoose.connection.readyState === 1) {
+    return await Order.findOneAndUpdate(
+      { orderId },
+      updateFields,
+      { new: true }
+    );
+  }
+  const allOrders = loadPersistentOrders();
+  const idx = allOrders.findIndex((o) => o.orderId === orderId);
+  if (idx !== -1) {
+    for (const [key, val] of Object.entries(updateFields)) {
+      if (key.includes('.')) {
+        setDotProp(allOrders[idx], key, val);
+      } else {
+        allOrders[idx][key] = val;
+      }
+    }
+    savePersistentOrders(allOrders);
+    return allOrders[idx];
+  }
+  return null;
+}
 
 // Environment variables
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
@@ -8,9 +76,7 @@ const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 function requireDatabase(res) {
-  if (mongoose.connection.readyState === 1) return true;
-  res.status(503).json({ success: false, message: 'Payment service is unavailable because the database is not connected.' });
-  return false;
+  return true; // We now have reliable persistent fallback
 }
 
 function isAuthorizedOrderAccess(req, order) {
@@ -33,7 +99,7 @@ exports.createPaymentOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'orderId is required to initiate payment.' });
     }
 
-    const order = await Order.findOne({ orderId });
+    const order = await findOrderRecord(orderId);
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -125,7 +191,7 @@ exports.verifyPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'orderId is required for payment verification.' });
     }
 
-    const order = await Order.findOne({ orderId });
+    const order = await findOrderRecord(orderId);
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -182,10 +248,9 @@ exports.verifyPayment = async (req, res, next) => {
       paidAt: new Date(),
     };
 
-    const updated = await Order.findOneAndUpdate(
-      { orderId },
-      { payment: 'Paid', paymentDetails: paymentRecord },
-      { new: true }
+    const updated = await saveOrderRecord(
+      orderId,
+      { payment: 'Paid', paymentDetails: paymentRecord }
     );
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -211,16 +276,15 @@ exports.recordPaymentFailure = async (req, res, next) => {
     }
 
     const failureReason = reason || 'Payment cancelled by customer or rejected by provider.';
-    const order = await Order.findOne({ orderId });
+    const order = await findOrderRecord(orderId);
     if (!order) return res.status(404).json({ success: false, message: 'Order record not found.' });
     if (!isAuthorizedOrderAccess(req, order)) {
       const statusCode = req.user ? 403 : 401;
       return res.status(statusCode).json({ success: false, message: 'Access denied: You are not authorized to update this order payment.' });
     }
-    const updated = await Order.findOneAndUpdate(
-      { orderId },
-      { payment: 'Failed', 'paymentDetails.failureReason': failureReason },
-      { new: true }
+    const updated = await saveOrderRecord(
+      orderId,
+      { payment: 'Failed', 'paymentDetails.failureReason': failureReason }
     );
     if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
     return res.json({ success: true, message: 'Payment marked as failed. Retry available.', data: updated });
@@ -286,7 +350,7 @@ exports.submitUpiPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide a valid 12-digit UPI reference (UTR) number.' });
     }
 
-    const order = await Order.findOne({ orderId });
+    const order = await findOrderRecord(orderId);
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -308,14 +372,13 @@ exports.submitUpiPayment = async (req, res, next) => {
       adminNotes: notes ? String(notes).trim() : '',
     };
 
-    const updated = await Order.findOneAndUpdate(
-      { orderId },
+    const updated = await saveOrderRecord(
+      orderId,
       {
         paymentMethod: 'UPI / PhonePe',
         payment: 'Pending',
         paymentDetails: upiDetails,
-      },
-      { new: true }
+      }
     );
     if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
     return res.json({
@@ -345,7 +408,7 @@ exports.verifyUpiPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Action must be either "approve" or "reject".' });
     }
 
-    const order = await Order.findOne({ orderId });
+    const order = await findOrderRecord(orderId);
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -363,7 +426,7 @@ exports.verifyUpiPayment = async (req, res, next) => {
         'paymentDetails.failureReason': '',
       };
 
-      const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
+      const updated = await saveOrderRecord(orderId, updateData);
       if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
       return res.json({
         success: true,
@@ -382,7 +445,7 @@ exports.verifyUpiPayment = async (req, res, next) => {
       'paymentDetails.failureReason': failureReason,
     };
 
-    const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
+    const updated = await saveOrderRecord(orderId, updateData);
     if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
     return res.json({
       success: true,

@@ -22,6 +22,14 @@ function createMockReqRes(options = {}) {
     query: options.query || {},
     headers: options.headers || {},
     user: options.user || null,
+    // Mimic Express req.get(headerName)
+    get(headerName) {
+      const key = headerName.toLowerCase();
+      for (const [k, v] of Object.entries(this.headers)) {
+        if (k.toLowerCase() === key) return v;
+      }
+      return undefined;
+    },
   };
 
   const res = {
@@ -96,12 +104,17 @@ async function runSyncTests() {
 
   // --- Step 2: Remote Customer places order with PhonePe UPI ---
   console.log('\n--- Step 2: Remote Customer Places Order via Forwarded Website ---');
+  const crypto = require('node:crypto');
+  const testIdempotencyKey = crypto.randomUUID();
   const orderReq = createMockReqRes({
     user: {
       id: remoteCustomer.id,
       name: remoteCustomer.name,
       email: remoteCustomer.email,
       role: 'customer',
+    },
+    headers: {
+      'Idempotency-Key': testIdempotencyKey,
     },
     body: {
       customerName: remoteCustomer.name,
