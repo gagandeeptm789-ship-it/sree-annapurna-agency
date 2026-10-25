@@ -34,5 +34,17 @@
     "city": "",
     "pincode": "",
     "createdAt": "2026-10-25T14:18:37.465Z"
+  },
+  {
+    "id": "USR-MVNXVM2L-712",
+    "name": "manju",
+    "email": "manju@gmail.com",
+    "password": "88d555667b4b185e0d723bf01255d053:d99d484b80311ea206458555cd8746b576c05a0d7fb712ebef7b330bf83c9505fe09b99cad8346f599ea86f3d689f54666657df780b8904d6fd451251ad37802",
+    "phone": "7892270824",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T14:44:46.845Z"
   }
 ]
