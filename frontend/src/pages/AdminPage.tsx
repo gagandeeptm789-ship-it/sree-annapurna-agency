@@ -384,8 +384,9 @@ function OrdersSection({ orders, onAdd, onEdit, onView, onDelete, onUpdate }: { 
 }
 
 function OrdersTable({ orders, onUpdate, onEdit, onView, onDelete }: { orders: DemoOrder[]; onUpdate?: (id: string, status: DemoOrder['status']) => void; onEdit?: (order: DemoOrder) => void; onView?: (order: DemoOrder) => void; onDelete?: (order: DemoOrder) => void }) {
+  const { notify } = useStore()
   const canManage = !!onEdit || !!onDelete || !!onView
-  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span></td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}<button type="button" onClick={() => apiClient.downloadInvoicePdf(order.id)} className="invoice-btn" title="Download official PDF invoice" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={13} /> Invoice</button>{onEdit && <button type="button" onClick={() => onEdit(order)}>Edit</button>}{onDelete && <button type="button" className="delete-text" onClick={() => onDelete(order)}>Delete</button>}</div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
+  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Pending Verification' : order.payment}</span>{order.paymentDetails?.utrNumber && <div style={{ fontSize: '11px', color: '#173F35', fontWeight: 600, marginTop: '2px' }}>UTR: {order.paymentDetails.utrNumber}</div>}</td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}<button type="button" onClick={async () => { notify('Downloading official invoice...'); const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order); if (res.success) notify(`Invoice for ${order.id} downloaded.`); else notify(res.message || 'Invoice download failed.'); }} className="invoice-btn" title="Download official PDF invoice" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={13} /> Invoice</button>{onEdit && <button type="button" onClick={() => onEdit(order)}>Edit</button>}{onDelete && <button type="button" className="delete-text" onClick={() => onDelete(order)}>Delete</button>}</div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
 }
 
 function EmptyTable({ columns, text }: { columns: number; text: string }) {
@@ -440,6 +441,7 @@ function SettingsSection({ records, onAdd, onEdit, onDelete, clearAll }: { recor
 }
 
 function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order: DemoOrder; products: Product[]; onClose: () => void; onUpdateStatus: (status: DemoOrder['status']) => void }) {
+  const { verifyUpiPayment, notify } = useStore()
   const [downloading, setDownloading] = useState(false)
   const [downloadMsg, setDownloadMsg] = useState('')
   const d = order.deliveryDetails
@@ -481,7 +483,8 @@ function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order
               <p><strong>Phone:</strong> {order.phone || d?.phone || '—'}</p>
               <p><strong>Email:</strong> {order.customerEmail || d?.email || '—'}</p>
               <p><strong>Order Date:</strong> {order.date}</p>
-              <p><strong>Payment Status:</strong> <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span></p>
+              <p><strong>Payment Method:</strong> {order.paymentMethod || 'Cash on Delivery / Agency Invoice'}</p>
+              <p><strong>Payment Status:</strong> <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Pending Verification' : order.payment}</span></p>
             </section>
 
             <section className="order-section-block">
@@ -493,7 +496,66 @@ function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order
             </section>
           </div>
 
-          <section className="order-items-table-block">
+          {(order.paymentMethod?.includes('UPI') || order.paymentDetails?.provider === 'phonepe_upi') && (
+            <div style={{ marginTop: '14px', padding: '14px', background: '#FDFBF7', border: '1.5px solid #285C4D', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#173F35', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                📱 PhonePe / UPI Payment Reference
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '12px' }}>
+                <div><strong>Payee:</strong> {order.paymentDetails?.payeeName || 'GAGAN DEEP'}</div>
+                <div><strong>Payee Phone:</strong> {order.paymentDetails?.payeeUpiNumber || '6360074675'}</div>
+                <div><strong>UTR Reference:</strong> <code style={{ background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, color: '#173F35' }}>{order.paymentDetails?.utrNumber || 'N/A'}</code></div>
+                <div><strong>Verification:</strong> <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentDetails?.verificationStatus || order.payment}</span></div>
+              </div>
+              {order.paymentDetails?.failureReason && (
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#B91C1C' }}>
+                  <strong>Rejection Note:</strong> {order.paymentDetails.failureReason}
+                </p>
+              )}
+
+              {order.payment !== 'Paid' && (
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="button button-admin"
+                    style={{ background: '#166534', color: '#ffffff', fontSize: '12px', padding: '6px 14px' }}
+                    onClick={async () => {
+                      const res = await verifyUpiPayment(order.id, 'approve')
+                      if (res.success) {
+                        notify('UPI payment verified! Order confirmed & marked as Paid.')
+                        onClose()
+                      } else {
+                        notify(res.message || 'Verification failed.')
+                      }
+                    }}
+                  >
+                    ✓ Verify & Mark Paid
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-outline"
+                    style={{ color: '#b91c1c', borderColor: '#fca5a5', fontSize: '12px', padding: '6px 14px' }}
+                    onClick={async () => {
+                      const reason = window.prompt('Enter rejection reason (optional):', 'UTR reference not matched on PhonePe statement')
+                      if (reason !== null) {
+                        const res = await verifyUpiPayment(order.id, 'reject', reason)
+                        if (res.success) {
+                          notify('Payment marked as Failed.')
+                          onClose()
+                        } else {
+                          notify(res.message || 'Rejection update failed.')
+                        }
+                      }
+                    }}
+                  >
+                    ✕ Reject Reference
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <section className="order-items-table-block" style={{ marginTop: '16px' }}>
             <h3>Ordered Products ({order.items?.length ?? 0})</h3>
             <div className="table-scroll">
               <table>
@@ -548,7 +610,7 @@ function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order
               onClick={async () => {
                 setDownloading(true)
                 setDownloadMsg('Generating invoice PDF...')
-                const res = await apiClient.downloadInvoicePdf(order.id)
+                const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order)
                 setDownloading(false)
                 if (res.success) setDownloadMsg('Invoice downloaded.')
                 else setDownloadMsg(res.message || 'Download failed.')

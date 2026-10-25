@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, Copy, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, QrCode, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, Copy, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { categories } from '../data/catalog'
 import type { Product } from '../types'
@@ -902,7 +902,6 @@ export function CheckoutPage() {
   const [checkoutError, setCheckoutError] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE' | 'UPI'>('COD')
   const [utrNumber, setUtrNumber] = useState('')
-  const [upiNotes, setUpiNotes] = useState('')
   const [copiedNumber, setCopiedNumber] = useState(false)
 
   const copyUpiNumber = () => {
@@ -1080,6 +1079,11 @@ export function CheckoutPage() {
       return
     }
 
+    if (paymentMethod === 'UPI' && (!utrNumber.trim() || utrNumber.trim().length < 6)) {
+      setCheckoutError('Please enter your 12-digit PhonePe / UPI Transaction Reference (UTR) number.')
+      return
+    }
+
     const deliveryData = {
       name: name.trim(),
       phone: phone.trim(),
@@ -1112,12 +1116,22 @@ export function CheckoutPage() {
         pincode: pincode.trim(),
         notes: notes.trim() || undefined,
         paymentMethod,
+        utrNumber: paymentMethod === 'UPI' ? utrNumber.trim() : undefined,
       })
 
       const finalOrderId = res.orderId
       const finalToken = res.accessToken || ''
       setOrderReference(finalOrderId)
       setOrderAccessToken(finalToken)
+
+      if (paymentMethod === 'UPI') {
+        setPaymentStatus('Pending')
+        setOrderStatus('Pending')
+        setPlaced(true)
+        setIsProcessingPayment(false)
+        notify('UPI payment reference submitted! Status: Payment Pending Verification.')
+        return
+      }
 
       if (paymentMethod === 'ONLINE') {
         // Initiate Razorpay payment
@@ -1243,14 +1257,14 @@ export function CheckoutPage() {
           </div>
           <div className="overview-chip">
             <span>Payment Method</span>
-            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
-              {paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : 'Cash on Delivery / Agency Invoice'}
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+              {paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : paymentMethod === 'UPI' ? 'UPI / PhonePe' : 'Cash on Delivery / Agency Invoice'}
             </span>
           </div>
           <div className="overview-chip">
             <span>Payment Status</span>
-            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
-              {paymentStatus}
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+              {paymentMethod === 'UPI' && paymentStatus === 'Pending' ? 'Payment Pending Verification' : paymentStatus}
             </span>
           </div>
           <div className="overview-chip">
@@ -1258,6 +1272,24 @@ export function CheckoutPage() {
             <strong>{money(placedSnapshot.total)}</strong>
           </div>
         </div>
+
+        {paymentMethod === 'UPI' && (
+          <div style={{ padding: '16px 20px', background: '#FDFBF7', border: '1.5px solid #285C4D', borderRadius: '8px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#173F35', marginBottom: '8px' }}>
+              <ShieldCheck size={22} color="#285C4D" />
+              <strong>UPI Payment Reference Recorded — Awaiting Verification</strong>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '13px' }}>
+              <div><span style={{ color: '#68716b' }}>Payee Name:</span> <strong>GAGAN DEEP</strong></div>
+              <div><span style={{ color: '#68716b' }}>UPI Mobile Number:</span> <strong>6360074675</strong></div>
+              <div><span style={{ color: '#68716b' }}>Your UTR Reference:</span> <code style={{ background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{utrNumber || 'Submitted'}</code></div>
+              <div><span style={{ color: '#68716b' }}>Verification Status:</span> <span className="payment-pill payment-pending">Payment Pending Verification</span></div>
+            </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#68716b' }}>
+              Our agency reconciliation team checks PhonePe statements against incoming UTRs. Your official tax invoice can be downloaded below and will reflect <strong>PAID</strong> once verified.
+            </p>
+          </div>
+        )}
 
         {paymentStatus === 'Failed' && (
           <div style={{ padding: '16px 20px', background: '#fdf2f2', border: '1px solid #f8b4b4', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
@@ -1545,13 +1577,104 @@ export function CheckoutPage() {
               </div>
 
               <div
+                className={`payment-option ${paymentMethod === 'UPI' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('UPI')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="payment-radio-bullet" />
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong>Pay Using UPI / PhonePe QR</strong>
+                    <span style={{ background: '#5f259f', color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px' }}>PhonePe</span>
+                    <span style={{ background: '#166534', color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px' }}>UPI</span>
+                  </div>
+                  <p style={{ margin: '4px 0 0 0' }}>Scan PhonePe QR or transfer to mobile number 6360074675 and submit your 12-digit UTR reference ID.</p>
+                </div>
+              </div>
+
+              {paymentMethod === 'UPI' && (
+                <div style={{ margin: '4px 0 10px', padding: '18px', background: '#FFFFFF', border: '1.5px solid #285C4D', borderRadius: '10px', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #5f259f', borderRadius: '10px', overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src="/assets/phonepe-qr.jpg" alt="PhonePe QR - GAGAN DEEP" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                      <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', color: '#5f259f', fontWeight: 700, letterSpacing: '0.02em' }}>
+                        SCAN VIA PHONEPE / ANY UPI APP
+                      </span>
+                    </div>
+
+                    <div style={{ flex: '1 1 240px', minWidth: '220px' }}>
+                      <div style={{ background: '#F8F9FA', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '11px', color: '#68716b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>Beneficiary Payee</div>
+                        <div style={{ fontSize: '16px', fontWeight: 800, color: '#173F35', marginTop: '2px' }}>GAGAN DEEP</div>
+                        
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#FFFFFF', border: '1px dashed #5f259f', borderRadius: '6px', padding: '8px 10px' }}>
+                          <div>
+                            <span style={{ fontSize: '11px', color: '#68716b', display: 'block' }}>UPI Mobile Number</span>
+                            <strong style={{ fontSize: '15px', color: '#173F35', letterSpacing: '0.05em' }}>6360074675</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); copyUpiNumber(); }}
+                            style={{
+                              background: copiedNumber ? '#166534' : '#5f259f',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '5px',
+                              padding: '6px 12px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <Copy size={13} /> {copiedNumber ? 'Copied!' : 'Copy Number'}
+                          </button>
+                        </div>
+
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: '#68716b' }}>Payable Amount:</span>
+                          <strong style={{ fontSize: '18px', color: '#B91C1C', fontWeight: 800 }}>{money(subtotal)}</strong>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12.5px', fontWeight: 700, color: '#173F35' }}>
+                          UPI Transaction ID / 12-Digit UTR Ref *
+                        </label>
+                        <input
+                          type="text"
+                          className="input"
+                          placeholder="e.g. 428901234567 or PhonePe Ref ID"
+                          value={utrNumber}
+                          onChange={(e) => setUtrNumber(e.target.value)}
+                          maxLength={32}
+                          style={{ borderColor: utrNumber ? '#285C4D' : '#E5E7EB', fontWeight: 600, letterSpacing: '0.03em' }}
+                        />
+                        <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#68716b' }}>
+                          Enter the 12-digit UTR / Transaction reference shown on your PhonePe payment receipt.
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '12px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '6px', padding: '8px 12px', fontSize: '11.5px', color: '#92400E' }}>
+                    ℹ️ Status will be saved as <strong>Payment Pending Verification</strong>. Once verified by our accounts desk with the bank statement, your order and tax invoice will be marked as Paid.
+                  </div>
+                </div>
+              )}
+
+              <div
                 className={`payment-option ${paymentMethod === 'ONLINE' ? 'selected' : ''}`}
                 onClick={() => setPaymentMethod('ONLINE')}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="payment-radio-bullet" />
                 <div>
-                  <strong>Online Payment (UPI, Debit/Credit Card, NetBanking)</strong>
+                  <strong>Online Payment (Razorpay / Instant Card / NetBanking)</strong>
                   <p>Instant online settlement via Razorpay with instant order confirmation.</p>
                 </div>
               </div>
@@ -1675,7 +1798,7 @@ export function CheckoutPage() {
 }
 
 export function CustomerOrdersPage() {
-  const { getCustomerOrders, customer } = useStore()
+  const { getCustomerOrders, customer, notify } = useStore()
   const orders = getCustomerOrders()
 
   if (!customer) {
@@ -1744,9 +1867,16 @@ export function CustomerOrdersPage() {
                   <strong>{order.id}</strong>
                   <span className="order-date-label">Placed {order.date}</span>
                 </div>
-                <div className="customer-order-status-group">
+                <div className="customer-order-status-group" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span>
-                  <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span>
+                  <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Payment Pending Verification' : order.payment}
+                  </span>
+                  {order.paymentDetails?.utrNumber && (
+                    <small style={{ fontSize: '11px', background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px', color: '#173F35', fontWeight: 600 }}>
+                      UTR: {order.paymentDetails.utrNumber}
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -1776,7 +1906,15 @@ export function CustomerOrdersPage() {
                 <button
                   type="button"
                   className="button button-outline button-small"
-                  onClick={() => apiClient.downloadInvoicePdf(order.id)}
+                  onClick={async () => {
+                    notify('Generating and downloading official PDF invoice...')
+                    const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order)
+                    if (res.success) {
+                      notify(`Official PDF invoice for ${order.id} downloaded.`)
+                    } else {
+                      notify(res.message || 'Unable to download invoice.')
+                    }
+                  }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <FileText size={14} />
@@ -1894,8 +2032,17 @@ export function OrderDetailPage() {
               </div>
             )}
             <p className="payment-note-line">
-              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span> {order.paymentMethod ? `(${order.paymentMethod})` : '(Cash on delivery / Agency invoice)'}
+              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Payment Pending Verification' : order.payment}</span> {order.paymentMethod ? `(${order.paymentMethod})` : '(Cash on delivery / Agency invoice)'}
             </p>
+            {order.paymentDetails?.utrNumber && (
+              <div style={{ marginTop: '10px', padding: '10px 14px', background: '#F8F9FA', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '13px' }}>
+                <div><strong>UPI Reference (UTR):</strong> <code style={{ fontWeight: 700, color: '#173F35', background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px' }}>{order.paymentDetails.utrNumber}</code></div>
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#68716B' }}>
+                  Beneficiary: {order.paymentDetails.payeeName || 'GAGAN DEEP'} ({order.paymentDetails.payeeUpiNumber || '6360074675'})
+                  {order.paymentDetails.verificationStatus && ` · Status: ${order.paymentDetails.verificationStatus}`}
+                </div>
+              </div>
+            )}
           </section>
 
           {d && (
@@ -1952,7 +2099,7 @@ export function OrderDetailPage() {
             className="button button-primary full-button"
             onClick={async () => {
               setIsDownloading(true)
-              const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken || tokenParam || undefined)
+              const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken || tokenParam || undefined, order)
               setIsDownloading(false)
               if (res.success) {
                 notify(`Official PDF invoice for ${order.id} downloaded.`)
