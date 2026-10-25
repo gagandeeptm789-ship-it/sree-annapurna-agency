@@ -181,4 +181,4 @@ npm run dev
   - Customers are **never** redirected to administrative dashboards upon checkout.
 - **Owner / Admin Dashboard (`/admin`, `/admin/orders`)**:
   - Dedicated operations console for viewing incoming orders, updating fulfillment statuses (Pending → Confirmed → Processing → Dispatched → Delivered), and managing products.
-
+some changes going updated
