@@ -931,7 +931,73 @@ export function CheckoutPage() {
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [pincode, setPincode] = useState('')
-  const [notes, setNotes] = useState('')
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationMessage, setLocationMessage] = useState('')
+  const [notes, setNotes] = useState('') 
+  
+  const useCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      setLocationMessage('Location is not available in this browser. Please enter your address manually.')
+      return
+    }
+
+    setIsLocating(true)
+    setLocationMessage('')
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 60000,
+        })
+      })
+
+      const query = new URLSearchParams({
+        latitude: String(position.coords.latitude),
+        longitude: String(position.coords.longitude),
+        localityLanguage: 'en',
+      })
+      const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${query}`)
+      if (!response.ok) {
+        throw new Error('Address lookup failed')
+      }
+
+      const result = await response.json() as {
+        locality?: string
+        city?: string
+        principalSubdivision?: string
+        postcode?: string
+      }
+      const detectedCity = result.city?.trim() || result.locality?.trim() || result.principalSubdivision?.trim() || ''
+      const detectedAddress = result.locality?.trim() || detectedCity
+      const detectedPincode = result.postcode?.trim() || ''
+
+      if (!detectedAddress && !detectedCity && !detectedPincode) {
+        setLocationMessage('We could not find an address for this location. Please enter your address manually.')
+        return
+      }
+
+      if (detectedAddress) setAddress(detectedAddress)
+      if (detectedCity) setCity(detectedCity)
+      if (detectedPincode) setPincode(detectedPincode)
+      setLocationMessage('Location found. Please review and edit your delivery address before placing the order.')
+    } catch (error) {
+      if (error instanceof GeolocationPositionError) {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationMessage('Location permission was denied. You can enter your address manually.')
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationMessage('Your location is unavailable right now. Please enter your address manually.')
+        } else {
+          setLocationMessage('We could not get your location in time. Please try again or enter your address manually.')
+        }
+      } else {
+        setLocationMessage('We could not look up an address for your location. Please enter your address manually.')
+      }
+    } finally {
+      setIsLocating(false)
+    }
+  }
 
   useEffect(() => {
     if (customer) {
@@ -1484,6 +1550,19 @@ export function CheckoutPage() {
 
           <section className="form-panel form-stack">
             <h2>2. Delivery Address</h2>
+            <div>
+              <button
+                type="button"
+                className="button button-outline"
+                onClick={useCurrentLocation}
+                disabled={isLocating}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                {isLocating ? <Loader2 size={16} className="animate-spin" /> : null}
+                {isLocating ? 'Getting Location...' : '📍 Use My Current Location'}
+              </button>
+              {locationMessage && <p role="status" style={{ margin: '8px 0 0', fontSize: '0.875rem' }}>{locationMessage}</p>}
+            </div>
             <label>
               Street Address, Door No., Building *
               <input
