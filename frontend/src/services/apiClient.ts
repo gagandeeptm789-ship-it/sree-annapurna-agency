@@ -29,7 +29,18 @@ export interface ApiResponse<T> {
 }
 
 class ApiClient {
-  private baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '')
+  private get baseUrl(): string {
+    const envUrl = (import.meta.env.VITE_API_URL || '').trim()
+    if (!envUrl) return '/api'
+    if (typeof window !== 'undefined') {
+      const isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+      const isLocalhostTarget = envUrl.includes('localhost') || envUrl.includes('127.0.0.1')
+      if (isRemote && isLocalhostTarget) {
+        return '/api'
+      }
+    }
+    return envUrl.replace(/\/+$/, '')
+  }
 
   getCustomerToken(): string | null {
     try {
@@ -102,17 +113,34 @@ class ApiClient {
       })
 
       const json = await response.json().catch(() => null)
+      if (!response.ok && (!json || !json.message)) {
+        return {
+          ok: false,
+          status: response.status,
+          data: {
+            success: false,
+            message: `Server returned error (${response.status}: ${response.statusText || 'Request failed'}).`,
+          },
+        }
+      }
       return {
         ok: response.ok,
         status: response.status,
         data: json,
       }
-    } catch (error) {
-      // Offline / network failure handled gracefully
+    } catch (error: any) {
+      console.error('[API] Network or connection failure:', error)
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+      const errorMsg = isOffline
+        ? 'You are currently offline. Please check your internet connection.'
+        : 'Cannot reach backend server. Please verify the backend is running on port 5000.'
       return {
         ok: false,
         status: 0,
-        data: null,
+        data: {
+          success: false,
+          message: errorMsg,
+        },
       }
     }
   }
@@ -283,6 +311,26 @@ class ApiClient {
       headers: { 'x-require-owner': 'true' },
     })
     return res.ok
+  }
+
+  async clearOperationalData(): Promise<{ success: boolean; message?: string; count?: number }> {
+    const res = await this.request<any>('/orders/owner/clear-all', {
+      method: 'DELETE',
+      headers: {
+        'x-require-owner': 'true',
+      },
+    })
+    if (res.ok && res.data?.success) {
+      return {
+        success: true,
+        message: res.data.message || 'Operational records cleared successfully.',
+        count: res.data.cleared?.ordersCount,
+      }
+    }
+    return {
+      success: false,
+      message: res.data?.message || 'Server was unable to clear operational data. Please verify your connection.',
+    }
   }
 
   // --- Auth ---

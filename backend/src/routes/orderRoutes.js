@@ -5,6 +5,7 @@ const {
   getOrderById,
   createOrder,
   updateOrderStatus,
+  clearAllOrders,
 } = require('../controllers/orderController');
 const { getInvoice, getInvoiceHtml, getInvoicePdf } = require('../controllers/invoiceController');
 const { protectCustomer, protectOwner, optionalAuth } = require('../middleware/authMiddleware');
@@ -16,6 +17,11 @@ router.route('/')
 // Dedicated route for owner operations portal (strictly requires owner role and returns all orders)
 router.route('/owner/all')
   .get(protectOwner, getOrders);
+
+// Dedicated route for clearing all operational data (strictly requires owner role)
+router.route('/owner/clear-all')
+  .delete(protectOwner, clearAllOrders)
+  .post(protectOwner, clearAllOrders);
 
 router.route('/:id')
   .get(optionalAuth, getOrderById);

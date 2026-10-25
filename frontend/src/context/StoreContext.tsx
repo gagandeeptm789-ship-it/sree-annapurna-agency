@@ -33,7 +33,7 @@ export interface StoreValue extends PersistedState {
   registerRemote: (data: { name: string; email: string; password: string; phone?: string }) => Promise<{ success: boolean; message?: string }>
   signOutLocal: () => void
   notify: (message: string) => void
-  clearAllData: () => void
+  clearAllData: () => Promise<boolean>
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -627,7 +627,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch {}
       setNotice('Signed out of customer account.')
     },
-    clearAllData: () => {
+    clearAllData: async (): Promise<boolean> => {
+      const serverRes = await apiClient.clearOperationalData()
+      if (!serverRes.success) {
+        setNotice(serverRes.message || 'Failed to clear operational data on the server.')
+        return false
+      }
       setSaved((current) => ({
         version: 4,
         products: current.products.length ? current.products : initialProducts,
@@ -643,7 +648,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('saa-customer-profile')
         localStorage.removeItem('saa-customer-order-ids')
       } catch {}
-      setNotice('Operational records cleared. Product catalogue is preserved.')
+      setNotice('Operational records cleared from database and storage. Product catalogue preserved.')
+      return true
     },
   }), [saved, customer, customerOrders, notice, orderSyncError, isOwnerAuthenticated])
 

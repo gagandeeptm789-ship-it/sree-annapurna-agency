@@ -45,8 +45,14 @@ exports.register = async (req, res, next) => {
     if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
-    if (phone && (typeof phone !== 'string' || phone.trim().length < 10)) {
-      return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+    if (phone) {
+      if (typeof phone !== 'string') {
+        return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+      }
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length < 10) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+      }
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -69,10 +75,18 @@ exports.register = async (req, res, next) => {
     if (mongoose.connection.readyState === 1) {
       const existing = await User.findOne({ email: cleanEmail }).lean();
       if (existing) {
-        return res.status(409).json({ success: false, message: 'An account with this email address already exists.' });
+        return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please sign in.' });
       }
 
-      const created = await User.create(userPayload);
+      let created;
+      try {
+        created = await User.create(userPayload);
+      } catch (dbErr) {
+        if (dbErr.code === 11000) {
+          return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please sign in.' });
+        }
+        throw dbErr;
+      }
       // Also backup to persistent disk storage
       const currentUsers = loadPersistentUsers();
       currentUsers.push(userPayload);
@@ -153,7 +167,19 @@ exports.login = async (req, res, next) => {
     const cleanEmail = email.trim().toLowerCase();
 
     if (mongoose.connection.readyState === 1) {
-      const user = await User.findOne({ email: cleanEmail });
+      let user = await User.findOne({ email: cleanEmail });
+      if (!user) {
+        // If user was created in persistent disk cache, import to MongoDB
+        const diskUsers = loadPersistentUsers();
+        const diskUser = diskUsers.find((u) => u.email === cleanEmail);
+        if (diskUser) {
+          try {
+            user = await User.create(diskUser);
+          } catch (_) {
+            user = diskUser;
+          }
+        }
+      }
       if (!user) {
         return res.status(401).json({ success: false, message: 'Invalid email address or password.' });
       }

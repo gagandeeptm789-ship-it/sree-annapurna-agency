@@ -510,6 +510,66 @@ exports.updateOrderStatus = async (req, res, next) => {
 };
 
 // ---------------------------------------------------------------------------
+// @desc    Clear all operational orders and test transaction logs (Owner portal only)
+// @route   DELETE /api/orders/owner/clear-all
+// @route   POST   /api/orders/owner/clear-all
+// ---------------------------------------------------------------------------
+exports.clearAllOrders = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'owner') {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: Only authorized agency owners can clear operational data.',
+      });
+    }
+
+    let deletedOrdersCount = 0;
+
+    // 1. Clear orders from MongoDB if connected
+    if (isDbConnected()) {
+      const result = await Order.deleteMany({});
+      deletedOrdersCount += result.deletedCount || 0;
+    }
+
+    // 2. Clear orders from persistent disk storage
+    const diskOrders = loadPersistentOrders();
+    deletedOrdersCount = Math.max(deletedOrdersCount, diskOrders.length);
+    savePersistentOrders([]);
+    memoryOrders.length = 0;
+
+    // 3. Clean up automated test customer accounts while preserving owner and genuine accounts
+    try {
+      const usersPath = path.resolve(__dirname, '../../data/users.json');
+      if (fs.existsSync(usersPath)) {
+        const rawUsers = fs.readFileSync(usersPath, 'utf8').trim();
+        if (rawUsers) {
+          const parsedUsers = JSON.parse(rawUsers);
+          if (Array.isArray(parsedUsers)) {
+            // Keep genuine accounts and owners, remove transient test runners
+            const testEmailRegex = /^(test\.user\.|friend\.customer\.|ramesh\.a\.|suresh\.b\.|realtest\.|newcustomer\.)/i;
+            const keptUsers = parsedUsers.filter((u) => u.role === 'owner' || !testEmailRegex.test(u.email || ''));
+            fs.writeFileSync(usersPath, JSON.stringify(keptUsers, null, 2), 'utf8');
+          }
+        }
+      }
+    } catch (cleanErr) {
+      console.warn('[Storage] Notice during test user cleanup:', cleanErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Operational orders and test transaction logs cleared successfully. Product catalogue and brand identities permanently preserved.',
+      cleared: {
+        ordersCount: deletedOrdersCount,
+        clearedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Exports for test suites
 // ---------------------------------------------------------------------------
 exports.loadPersistentOrders = loadPersistentOrders;
