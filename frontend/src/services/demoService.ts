@@ -16,19 +16,16 @@ export interface DemoDataService {
 }
 
 const STORAGE_KEY = 'saa-store-v4'
-const LEGACY_KEYS = ['saa-store-v3', 'saa-local-store-v2', 'saa-demo-store-v1']
 
 export const demoDataService: DemoDataService = {
   read: () => {
-    // Clear old legacy keys
-    for (const key of LEGACY_KEYS) {
-      localStorage.removeItem(key)
-    }
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? (JSON.parse(raw) as unknown) : null
   },
   write: (snapshot) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+    const previous = localStorage.getItem(STORAGE_KEY)
+    const previousOrders = previous ? (JSON.parse(previous) as Partial<StoreSnapshot>).orders : undefined
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...snapshot, orders: previousOrders ?? [] }))
   },
 }
 

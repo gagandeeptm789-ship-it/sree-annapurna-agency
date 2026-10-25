@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, Copy, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, QrCode, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, Copy, CreditCard, FileText, Loader2, MapPin, Minus, PackageCheck, Phone, Plus, Search, ShieldCheck, ShoppingBag, Truck, User, X } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { categories } from '../data/catalog'
 import type { Product } from '../types'
@@ -902,7 +902,6 @@ export function CheckoutPage() {
   const [checkoutError, setCheckoutError] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE' | 'UPI'>('COD')
   const [utrNumber, setUtrNumber] = useState('')
-  const [upiNotes, setUpiNotes] = useState('')
   const [copiedNumber, setCopiedNumber] = useState(false)
 
   const copyUpiNumber = () => {
@@ -1077,10 +1076,9 @@ export function CheckoutPage() {
     setSandboxModalOpen(false)
     if (verified) {
       setPaymentStatus('Paid')
-      setOrderStatus('Confirmed')
-      updateOrder(sandboxData.orderId, { payment: 'Paid', status: 'Confirmed' })
+      updateOrder(sandboxData.orderId, { payment: 'Paid' })
       setPlaced(true)
-      notify('Online payment verified successfully! Order confirmed.')
+      notify('Online payment verified successfully. Order fulfillment status is unchanged.')
     } else {
       setPaymentStatus('Failed')
       updateOrder(sandboxData.orderId, { payment: 'Failed' })
@@ -1146,6 +1144,11 @@ export function CheckoutPage() {
       return
     }
 
+    if (paymentMethod === 'UPI' && (!utrNumber.trim() || utrNumber.trim().length < 6)) {
+      setCheckoutError('Please enter your 12-digit PhonePe / UPI Transaction Reference (UTR) number.')
+      return
+    }
+
     const deliveryData = {
       name: name.trim(),
       phone: phone.trim(),
@@ -1178,12 +1181,22 @@ export function CheckoutPage() {
         pincode: pincode.trim(),
         notes: notes.trim() || undefined,
         paymentMethod,
+        utrNumber: paymentMethod === 'UPI' ? utrNumber.trim() : undefined,
       })
 
       const finalOrderId = res.orderId
       const finalToken = res.accessToken || ''
       setOrderReference(finalOrderId)
       setOrderAccessToken(finalToken)
+
+      if (paymentMethod === 'UPI') {
+        setPaymentStatus('Pending')
+        setOrderStatus('Pending')
+        setPlaced(true)
+        setIsProcessingPayment(false)
+        notify('UPI payment reference submitted! Status: Payment Pending Verification.')
+        return
+      }
 
       if (paymentMethod === 'ONLINE') {
         // Initiate Razorpay payment
@@ -1224,10 +1237,9 @@ export function CheckoutPage() {
               })
               if (verified) {
                 setPaymentStatus('Paid')
-                setOrderStatus('Confirmed')
-                updateOrder(finalOrderId, { payment: 'Paid', status: 'Confirmed' })
+                updateOrder(finalOrderId, { payment: 'Paid' })
                 setPlaced(true)
-                notify('Online payment verified successfully! Order confirmed.')
+                notify('Online payment verified successfully. Order fulfillment status is unchanged.')
               } else {
                 setPaymentStatus('Failed')
                 updateOrder(finalOrderId, { payment: 'Failed' })
@@ -1309,14 +1321,14 @@ export function CheckoutPage() {
           </div>
           <div className="overview-chip">
             <span>Payment Method</span>
-            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
-              {paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : 'Cash on Delivery / Agency Invoice'}
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+              {paymentMethod === 'ONLINE' ? 'Online Payment (UPI/Cards)' : paymentMethod === 'UPI' ? 'UPI / PhonePe' : 'Cash on Delivery / Agency Invoice'}
             </span>
           </div>
           <div className="overview-chip">
             <span>Payment Status</span>
-            <span className={`payment-pill payment-${paymentStatus.toLowerCase()}`}>
-              {paymentStatus}
+            <span className={`payment-pill payment-${paymentStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+              {paymentMethod === 'UPI' && paymentStatus === 'Pending' ? 'Payment Pending Verification' : paymentStatus}
             </span>
           </div>
           <div className="overview-chip">
@@ -1324,6 +1336,24 @@ export function CheckoutPage() {
             <strong>{money(placedSnapshot.total)}</strong>
           </div>
         </div>
+
+        {paymentMethod === 'UPI' && (
+          <div style={{ padding: '16px 20px', background: '#FDFBF7', border: '1.5px solid #285C4D', borderRadius: '8px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#173F35', marginBottom: '8px' }}>
+              <ShieldCheck size={22} color="#285C4D" />
+              <strong>UPI Payment Reference Recorded — Awaiting Verification</strong>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '13px' }}>
+              <div><span style={{ color: '#68716b' }}>Payee Name:</span> <strong>GAGAN DEEP</strong></div>
+              <div><span style={{ color: '#68716b' }}>UPI Mobile Number:</span> <strong>6360074675</strong></div>
+              <div><span style={{ color: '#68716b' }}>Your UTR Reference:</span> <code style={{ background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{utrNumber || 'Submitted'}</code></div>
+              <div><span style={{ color: '#68716b' }}>Verification Status:</span> <span className="payment-pill payment-pending">Payment Pending Verification</span></div>
+            </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#68716b' }}>
+              Our agency reconciliation team checks PhonePe statements against incoming UTRs. Your official tax invoice can be downloaded below and will reflect <strong>PAID</strong> once verified.
+            </p>
+          </div>
+        )}
 
         {paymentStatus === 'Failed' && (
           <div style={{ padding: '16px 20px', background: '#fdf2f2', border: '1px solid #f8b4b4', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
@@ -1624,13 +1654,104 @@ export function CheckoutPage() {
               </div>
 
               <div
+                className={`payment-option ${paymentMethod === 'UPI' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('UPI')}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="payment-radio-bullet" />
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong>Pay Using UPI / PhonePe QR</strong>
+                    <span style={{ background: '#5f259f', color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px' }}>PhonePe</span>
+                    <span style={{ background: '#166534', color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px' }}>UPI</span>
+                  </div>
+                  <p style={{ margin: '4px 0 0 0' }}>Scan PhonePe QR or transfer to mobile number 6360074675 and submit your 12-digit UTR reference ID.</p>
+                </div>
+              </div>
+
+              {paymentMethod === 'UPI' && (
+                <div style={{ margin: '4px 0 10px', padding: '18px', background: '#FFFFFF', border: '1.5px solid #285C4D', borderRadius: '10px', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #5f259f', borderRadius: '10px', overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src="/assets/phonepe-qr.jpg" alt="PhonePe QR - GAGAN DEEP" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                      <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', color: '#5f259f', fontWeight: 700, letterSpacing: '0.02em' }}>
+                        SCAN VIA PHONEPE / ANY UPI APP
+                      </span>
+                    </div>
+
+                    <div style={{ flex: '1 1 240px', minWidth: '220px' }}>
+                      <div style={{ background: '#F8F9FA', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '11px', color: '#68716b', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>Beneficiary Payee</div>
+                        <div style={{ fontSize: '16px', fontWeight: 800, color: '#173F35', marginTop: '2px' }}>GAGAN DEEP</div>
+                        
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#FFFFFF', border: '1px dashed #5f259f', borderRadius: '6px', padding: '8px 10px' }}>
+                          <div>
+                            <span style={{ fontSize: '11px', color: '#68716b', display: 'block' }}>UPI Mobile Number</span>
+                            <strong style={{ fontSize: '15px', color: '#173F35', letterSpacing: '0.05em' }}>6360074675</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); copyUpiNumber(); }}
+                            style={{
+                              background: copiedNumber ? '#166534' : '#5f259f',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '5px',
+                              padding: '6px 12px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <Copy size={13} /> {copiedNumber ? 'Copied!' : 'Copy Number'}
+                          </button>
+                        </div>
+
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: '#68716b' }}>Payable Amount:</span>
+                          <strong style={{ fontSize: '18px', color: '#B91C1C', fontWeight: 800 }}>{money(subtotal)}</strong>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12.5px', fontWeight: 700, color: '#173F35' }}>
+                          UPI Transaction ID / 12-Digit UTR Ref *
+                        </label>
+                        <input
+                          type="text"
+                          className="input"
+                          placeholder="e.g. 428901234567 or PhonePe Ref ID"
+                          value={utrNumber}
+                          onChange={(e) => setUtrNumber(e.target.value)}
+                          maxLength={32}
+                          style={{ borderColor: utrNumber ? '#285C4D' : '#E5E7EB', fontWeight: 600, letterSpacing: '0.03em' }}
+                        />
+                        <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#68716b' }}>
+                          Enter the 12-digit UTR / Transaction reference shown on your PhonePe payment receipt.
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '12px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '6px', padding: '8px 12px', fontSize: '11.5px', color: '#92400E' }}>
+                    ℹ️ Status will be saved as <strong>Payment Pending Verification</strong>. Once verified by our accounts desk with the bank statement, your order and tax invoice will be marked as Paid.
+                  </div>
+                </div>
+              )}
+
+              <div
                 className={`payment-option ${paymentMethod === 'ONLINE' ? 'selected' : ''}`}
                 onClick={() => setPaymentMethod('ONLINE')}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="payment-radio-bullet" />
                 <div>
-                  <strong>Online Payment (UPI, Debit/Credit Card, NetBanking)</strong>
+                  <strong>Online Payment (Razorpay / Instant Card / NetBanking)</strong>
                   <p>Instant online settlement via Razorpay with instant order confirmation.</p>
                 </div>
               </div>
@@ -1754,7 +1875,7 @@ export function CheckoutPage() {
 }
 
 export function CustomerOrdersPage() {
-  const { getCustomerOrders, customer } = useStore()
+  const { getCustomerOrders, customer, orderSyncError, notify } = useStore()
   const orders = getCustomerOrders()
 
   if (!customer) {
@@ -1802,6 +1923,7 @@ export function CustomerOrdersPage() {
           <h1>My Orders</h1>
           <p>Orders for {customer.name} ({customer.email})</p>
         </div>
+        {orderSyncError && <p className="form-error" role="status">{orderSyncError}</p>}
         <Link to="/shop" className="button button-outline button-small">
           Shop catalogue <ArrowRight size={14} />
         </Link>
@@ -1823,9 +1945,16 @@ export function CustomerOrdersPage() {
                   <strong>{order.id}</strong>
                   <span className="order-date-label">Placed {order.date}</span>
                 </div>
-                <div className="customer-order-status-group">
-                  <span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span>
-                  <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span>
+                <div className="customer-order-status-group" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span>
+                  <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Payment Pending Verification' : order.payment}
+                  </span>
+                  {order.paymentDetails?.utrNumber && (
+                    <small style={{ fontSize: '11px', background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px', color: '#173F35', fontWeight: 600 }}>
+                      UTR: {order.paymentDetails.utrNumber}
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -1855,7 +1984,15 @@ export function CustomerOrdersPage() {
                 <button
                   type="button"
                   className="button button-outline button-small"
-                  onClick={() => apiClient.downloadInvoicePdf(order.id)}
+                  onClick={async () => {
+                    notify('Generating and downloading official PDF invoice...')
+                    const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order)
+                    if (res.success) {
+                      notify(`Official PDF invoice for ${order.id} downloaded.`)
+                    } else {
+                      notify(res.message || 'Unable to download invoice.')
+                    }
+                  }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <FileText size={14} />
@@ -1874,16 +2011,21 @@ export function OrderDetailPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const tokenParam = searchParams.get('token')
-  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, customer, notify } = useStore()
+  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, customer, orderSyncError, notify } = useStore()
   const [isDownloading, setIsDownloading] = useState(false)
-  const order = orders.find((item) => item.id === id)
   const myOrders = getCustomerOrders()
+  const order = (isOwnerAuthenticated ? orders : myOrders).find((item) => item.id === id)
 
   if (!order) return <NotFoundPage />
 
-  // Customer isolation check (owner, authenticated customer owning this order, or matching guest token)
-  const isCustomerOwner = customer && order.customerEmail && order.customerEmail.toLowerCase() === customer.email.toLowerCase()
-  const isAuthorized = isOwnerAuthenticated || isCustomerOwner || myOrders.some((o) => o.id === order.id) || (tokenParam && order.accessToken === tokenParam)
+  // Customer isolation check: strictly check customer.id against order.user, or owner role, or matching guest token
+  const isCustomerOwner = Boolean(
+    customer && (
+      order.user && customer.id && order.user === customer.id
+    )
+  )
+  const isTokenAuthorized = Boolean(!customer && order.isGuest && tokenParam && order.accessToken === tokenParam)
+  const isAuthorized = isOwnerAuthenticated || isCustomerOwner || isTokenAuthorized
 
   if (!isAuthorized) {
     return (
@@ -1891,13 +2033,15 @@ export function OrderDetailPage() {
         <div className="breadcrumbs">
           <Link to="/">Home</Link><span>/</span><Link to="/account/orders">My Orders</Link>
         </div>
-        <div className="unauthorized-order-state">
-          <p className="eyebrow">Access Notice</p>
-          <h2>Order Record Restricted</h2>
-          <p>This order is associated with another customer account. Please sign in with the customer account used to place this order.</p>
-          <div className="auth-buttons">
-            <Link to="/login" className="button button-dark">Sign In</Link>
-            <Link to="/account/orders" className="button button-outline">View My Orders</Link>
+        <div className="unauthorized-order-state" style={{ textAlign: 'center', padding: '60px 20px', background: '#faf8f2', borderRadius: '8px', border: '1px solid #e7e8e2', margin: '40px auto', maxWidth: '640px' }}>
+          <p className="eyebrow" style={{ color: '#B52B24', fontWeight: 700 }}>403 Forbidden · Access Restricted</p>
+          <h2 style={{ fontSize: '1.75rem', margin: '8px 0 12px 0' }}>Order Belongs to Another Account</h2>
+          <p style={{ color: '#68716B', marginBottom: '24px' }}>
+            This order ({id}) is associated with a different customer account. You are only permitted to inspect orders placed by your authenticated account.
+          </p>
+          <div className="auth-buttons" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Link to="/account/orders" className="button button-primary">View My Orders <ArrowRight size={14} /></Link>
+            <Link to="/shop" className="button button-outline">Shop Catalogue</Link>
           </div>
         </div>
       </div>
@@ -1908,22 +2052,19 @@ export function OrderDetailPage() {
     { key: 'Pending', label: 'Order Received', desc: 'Placed & queued for agency review' },
     { key: 'Confirmed', label: 'Confirmed by Agency', desc: 'Verified and accepted for fulfillment' },
     { key: 'Processing', label: 'Processing & Packaging', desc: 'Sealed items packaged in warehouse' },
-    { key: 'Dispatched', label: 'Dispatched for Delivery', desc: 'Out for delivery to customer address' },
+    { key: 'Packed', label: 'Packed', desc: 'Order packed and ready for dispatch' },
+    { key: 'Shipped', label: 'Shipped', desc: 'Order handed to the delivery carrier' },
+    { key: 'Out for Delivery', label: 'Out for Delivery', desc: 'Order is on its way to your address' },
     { key: 'Delivered', label: 'Delivered', desc: 'Received & fulfilled' },
   ]
 
-  const statusHierarchy: Record<string, number> = {
-    Pending: 0,
-    Confirmed: 1,
-    Processing: 2,
-    Dispatched: 3,
-    Delivered: 4,
-    Cancelled: -1,
-  }
-
-  const currentLevel = statusHierarchy[order.status] ?? 0
+  const currentLevel = order.status === 'Dispatched'
+    ? steps.findIndex((step) => step.key === 'Out for Delivery')
+    : steps.findIndex((step) => step.key === order.status)
   const isCancelled = order.status === 'Cancelled'
   const d = order.deliveryDetails
+  const latestStatusUpdate = [...(order.statusHistory || [])].reverse().find((entry) => entry.status === order.status)?.changedAt
+    || order.updatedAt || order.date
 
   return (
     <div className="container page-space">
@@ -1941,7 +2082,9 @@ export function OrderDetailPage() {
           <p>
             Placed {order.date} · Current status: <strong>{order.status}</strong>
           </p>
+          <p>Last status update: <strong>{new Date(latestStatusUpdate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong></p>
         </div>
+        {orderSyncError && <p className="form-error" role="status">{orderSyncError}</p>}
       </div>
 
       <div className="order-detail-layout">
@@ -1958,6 +2101,7 @@ export function OrderDetailPage() {
                 {steps.map((step, index) => {
                   const isDone = index < currentLevel
                   const isCurrent = index === currentLevel
+                  const statusUpdate = [...(order.statusHistory || [])].reverse().find((entry) => entry.status === step.key)
                   return (
                     <div className={`timeline-step ${isDone ? 'complete' : ''} ${isCurrent ? 'active' : ''}`} key={step.key}>
                       <span className="step-marker">
@@ -1965,7 +2109,11 @@ export function OrderDetailPage() {
                       </span>
                       <div className="step-content">
                         <strong>{step.label}</strong>
-                        <small>{isDone ? 'Completed' : isCurrent ? 'In progress' : step.desc}</small>
+                        <small>
+                          {statusUpdate
+                            ? `Updated ${new Date(statusUpdate.changedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                            : isDone ? 'Completed' : isCurrent ? 'In progress' : step.desc}
+                        </small>
                       </div>
                     </div>
                   )
@@ -1973,8 +2121,17 @@ export function OrderDetailPage() {
               </div>
             )}
             <p className="payment-note-line">
-              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase()}`}>{order.payment}</span> {order.paymentMethod ? `(${order.paymentMethod})` : '(Cash on delivery / Agency invoice)'}
+              Payment Status: <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Payment Pending Verification' : order.payment}</span> {order.paymentMethod ? `(${order.paymentMethod})` : '(Cash on delivery / Agency invoice)'}
             </p>
+            {order.paymentDetails?.utrNumber && (
+              <div style={{ marginTop: '10px', padding: '10px 14px', background: '#F8F9FA', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '13px' }}>
+                <div><strong>UPI Reference (UTR):</strong> <code style={{ fontWeight: 700, color: '#173F35', background: '#ECEEDF', padding: '2px 6px', borderRadius: '4px' }}>{order.paymentDetails.utrNumber}</code></div>
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#68716B' }}>
+                  Beneficiary: {order.paymentDetails.payeeName || 'GAGAN DEEP'} ({order.paymentDetails.payeeUpiNumber || '6360074675'})
+                  {order.paymentDetails.verificationStatus && ` · Status: ${order.paymentDetails.verificationStatus}`}
+                </div>
+              </div>
+            )}
           </section>
 
           {d && (
@@ -2031,7 +2188,7 @@ export function OrderDetailPage() {
             className="button button-primary full-button"
             onClick={async () => {
               setIsDownloading(true)
-              const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken || tokenParam || undefined)
+              const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken || tokenParam || undefined, order)
               setIsDownloading(false)
               if (res.success) {
                 notify(`Official PDF invoice for ${order.id} downloaded.`)
@@ -2059,7 +2216,7 @@ export function OrderDetailPage() {
 }
 
 export function AuthPage({ register = false }: { register?: boolean }) {
-  const { signInLocal, signInRemote, registerRemote, notify } = useStore()
+  const { signInRemote, registerRemote, notify } = useStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirectTarget = searchParams.get('redirect') || '/account'
@@ -2078,10 +2235,29 @@ export function AuthPage({ register = false }: { register?: boolean }) {
     const name = String(data.get('name') ?? '').trim()
     const phone = String(data.get('phone') ?? '').trim()
 
-    if (register && data.get('password') !== data.get('confirmPassword')) {
-      setFormError('The passwords do not match. Please re-enter them.')
-      notify('Passwords do not match.')
+    if (!email || !password) {
+      setFormError('Please enter both email and password.')
       return
+    }
+
+    if (register) {
+      if (!name) {
+        setFormError('Please enter your full name.')
+        return
+      }
+      if (phone.length < 10) {
+        setFormError('Please enter a valid 10-digit mobile number.')
+        return
+      }
+      if (password.length < 6) {
+        setFormError('Password must be at least 6 characters long.')
+        return
+      }
+      if (password !== String(data.get('confirmPassword') ?? '')) {
+        setFormError('The passwords do not match. Please re-enter them.')
+        notify('Passwords do not match.')
+        return
+      }
     }
 
     setLoading(true)
@@ -2092,30 +2268,19 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           notify(`Welcome to Sree Annapurna Agency, ${name}!`)
           navigate(redirectTarget)
           return
-        } else {
-          // Fallback to local session
-          signInLocal(name, email)
-          notify(`Signed in as ${name}`)
-          navigate(redirectTarget)
-          return
         }
+        setFormError(res.message || 'Unable to create your account. Please try again.')
       } else {
         const res = await signInRemote(email, password)
         if (res.success) {
           notify('Signed in successfully!')
           navigate(redirectTarget)
           return
-        } else {
-          // Fallback to local session
-          signInLocal(name || email.split('@')[0], email)
-          notify(`Signed in as ${email}`)
-          navigate(redirectTarget)
-          return
         }
+        setFormError(res.message || 'Unable to sign in. Please try again.')
       }
-    } catch {
-      signInLocal(name || email.split('@')[0], email)
-      navigate(redirectTarget)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Authentication is unavailable. Please retry.')
     } finally {
       setLoading(false)
     }
@@ -2186,10 +2351,19 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           </div>
 
           <form className="form-stack" onSubmit={submit}>
-            <div className="form-field">
-              <label htmlFor="account-name">Full name</label>
-              <input id="account-name" name="name" autoComplete="name" placeholder="Your name" required />
-            </div>
+            {register && (
+              <div className="form-field">
+                <label htmlFor="account-name">Full name</label>
+                <input id="account-name" name="name" autoComplete="name" placeholder="Your name" required />
+              </div>
+            )}
+
+            {register && (
+              <div className="form-field">
+                <label htmlFor="account-phone">Mobile number</label>
+                <input id="account-phone" name="phone" type="tel" autoComplete="tel" placeholder="10-digit mobile number" required />
+              </div>
+            )}
 
             <div className="form-field">
               <label htmlFor="account-email">Email address</label>
@@ -2271,7 +2445,7 @@ export function AccountPage() {
   const { customer, signOutLocal, getCustomerOrders } = useStore()
   const orders = getCustomerOrders()
   if (!customer) return <div className="container page-space"><div className="auth-prompt"><p className="eyebrow">Your space</p><h1>Account login</h1><p>Please sign in to view your account details and order history.</p><div><Link className="button button-dark" to="/login">Sign in<ArrowRight size={16} /></Link><Link className="button button-outline" to="/register">Create an account</Link></div></div></div>
-  return <div className="container page-space"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Your account</span></div><div className="page-heading"><div><p className="eyebrow">Customer account</p><h1>Hello, {customer.name}</h1></div><button className="button button-outline" onClick={signOutLocal}>Sign out</button></div><div className="account-grid"><aside className="account-menu"><a className="is-active" href="#profile">Profile</a><Link to="/account/orders">Orders ({orders.length})</Link><a href="#addresses">Addresses</a><a href="#wishlist">Wishlist</a></aside><div className="account-content"><section id="profile" className="form-panel"><p className="eyebrow">Profile</p><h2>{customer.name}</h2><p>{customer.email}</p><span className="demo-label">Active customer session</span></section><section id="orders" className="form-panel"><div className="panel-heading-row"><div><p className="eyebrow">Order history</p><h2>Recent orders</h2></div><Link to="/account/orders" className="text-link">View all orders ({orders.length}) <ArrowRight size={14} /></Link></div>{orders.length ? orders.slice(0, 3).map((order) => <div className="account-order" key={order.id}><span><Link to={`/account/orders/${order.id}`}><strong>{order.id}</strong></Link><small>{order.date}</small></span><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span><strong>{money(order.total)}</strong></div>) : <p>No orders placed yet.</p>}</section><section id="addresses" className="form-panel"><h2>Saved addresses</h2><p>No addresses saved yet.</p></section><section id="wishlist" className="form-panel"><h2>Saved products</h2><p>No saved items yet.</p><Link className="text-link" to="/shop">Browse products <ArrowRight size={15} /></Link></section></div></div></div>
+  return <div className="container page-space"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Your account</span></div><div className="page-heading"><div><p className="eyebrow">Customer account</p><h1>Hello, {customer.name}</h1></div><button className="button button-outline" onClick={signOutLocal}>Sign out</button></div><div className="account-grid"><aside className="account-menu"><a className="is-active" href="#profile">Profile</a><Link to="/account/orders">Orders ({orders.length})</Link><a href="#addresses">Addresses</a><a href="#wishlist">Wishlist</a></aside><div className="account-content"><section id="profile" className="form-panel"><p className="eyebrow">Profile</p><h2>{customer.name}</h2><p>{customer.email}</p><span className="demo-label">Active customer session</span></section><section id="orders" className="form-panel"><div className="panel-heading-row"><div><p className="eyebrow">Order history</p><h2>Recent orders</h2></div><Link to="/account/orders" className="text-link">View all orders ({orders.length}) <ArrowRight size={14} /></Link></div>{orders.length ? orders.slice(0, 3).map((order) => <div className="account-order" key={order.id}><span><Link to={`/account/orders/${order.id}`}><strong>{order.id}</strong></Link><small>{order.date}</small></span>  <span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span><strong>{money(order.total)}</strong></div>) : <p>No orders placed yet.</p>}</section><section id="addresses" className="form-panel"><h2>Saved addresses</h2><p>No addresses saved yet.</p></section><section id="wishlist" className="form-panel"><h2>Saved products</h2><p>No saved items yet.</p><Link className="text-link" to="/shop">Browse products <ArrowRight size={15} /></Link></section></div></div></div>
 }
 
 export function WholesalePage() {

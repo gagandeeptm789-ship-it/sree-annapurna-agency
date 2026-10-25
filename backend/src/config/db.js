@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const rawUri = process.env.MONGODB_URI;
+  const uri = (rawUri || '').trim().replace(/^["']|["']$/g, '');
 
   if (!uri) {
-    console.warn('[MongoDB] MONGODB_URI is not set in environment. Running in offline/in-memory mode for development.');
+    console.warn('[MongoDB] MONGODB_URI is not configured in backend/.env. Running with persistent file storage cache (backend/data/).');
     return null;
   }
 
@@ -18,6 +19,7 @@ const connectDB = async () => {
     // Sanitize message so credentials are never leaked in logs
     const safeMsg = (err.message || '').replace(/mongodb(\+srv)?:\/\/[^@]+@/gi, 'mongodb$1://***:***@');
     console.error(`[MongoDB] Connection error: ${safeMsg}`);
+    console.warn('[MongoDB] Operating with local persistent file storage fallback until connection is restored.');
     // Do not crash server in development if DB is temporarily unreachable
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);

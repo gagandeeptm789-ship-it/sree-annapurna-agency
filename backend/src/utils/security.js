@@ -1,7 +1,10 @@
 const crypto = require('node:crypto');
 
-// Secret key for JWT signatures (configured in .env or safe development default)
-const JWT_SECRET = process.env.JWT_SECRET || 'saa-master-secret-key-fmcg-2026-sree-annapurna-agency';
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
+  throw new Error('JWT_SECRET must be configured with at least 32 characters in production.');
+}
 
 /**
  * Hash password using standard scrypt with random salt
@@ -120,4 +123,3 @@ module.exports = {
   signToken,
   verifyToken,
 };
-

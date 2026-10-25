@@ -4,9 +4,14 @@ const mongoose = require('mongoose');
 const Brand = require('../models/Brand');
 
 const getFallbackBrands = () => {
-  const seedPath = path.resolve(__dirname, '../../../database/seed/brands.json');
-  if (fs.existsSync(seedPath)) {
-    return JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  const possiblePaths = [
+    path.resolve(__dirname, '../../database/seed/brands.json'),
+    path.resolve(__dirname, '../../../database/seed/brands.json'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
   }
   return [];
 };

@@ -670,7 +670,8 @@ input[type='checkbox'] {
   color: var(--success);
 }
 
-.payment-pending {
+.payment-pending,
+.payment-pending-verification {
   background: var(--warning-soft);
   border-color: #f0e0c2;
   color: var(--warning);

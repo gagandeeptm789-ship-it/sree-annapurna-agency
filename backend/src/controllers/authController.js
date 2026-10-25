@@ -1,9 +1,34 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('node:crypto');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { hashPassword, verifyPassword, signToken } = require('../utils/security');
 
-// Fallback memory store when MongoDB Atlas is offline or not yet connected
-const memoryUsers = [];
+// Persistent disk storage path for users fallback
+const USERS_STORAGE_PATH = path.resolve(__dirname, '../../data/users.json');
+
+function loadPersistentUsers() {
+  try {
+    if (fs.existsSync(USERS_STORAGE_PATH)) {
+      const raw = fs.readFileSync(USERS_STORAGE_PATH, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('[Storage] Error reading persistent users from disk:', err.message);
+  }
+  return [];
+}
+
+function savePersistentUsers(users) {
+  try {
+    const dir = path.dirname(USERS_STORAGE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(USERS_STORAGE_PATH, JSON.stringify(users, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Storage] Error saving persistent users to disk:', err.message);
+  }
+}
 
 // @desc    Register new customer account
 // @route   POST /api/auth/register
@@ -11,14 +36,23 @@ exports.register = async (req, res, next) => {
   try {
     const { name, email, password, phone, address, city, pincode } = req.body;
 
-    if (!name || !name.trim()) {
+    if (typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Please provide your full name.' });
     }
-    if (!email || !email.trim() || !email.includes('@')) {
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
     }
-    if (!password || password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+    if (phone) {
+      if (typeof phone !== 'string') {
+        return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+      }
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length < 10) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+      }
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -35,15 +69,29 @@ exports.register = async (req, res, next) => {
       address: address ? address.trim() : '',
       city: city ? city.trim() : '',
       pincode: pincode ? pincode.trim() : '',
+      createdAt: new Date().toISOString(),
     };
 
     if (mongoose.connection.readyState === 1) {
       const existing = await User.findOne({ email: cleanEmail }).lean();
       if (existing) {
-        return res.status(409).json({ success: false, message: 'An account with this email address already exists.' });
+        return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please sign in.' });
       }
 
-      const created = await User.create(userPayload);
+      let created;
+      try {
+        created = await User.create(userPayload);
+      } catch (dbErr) {
+        if (dbErr.code === 11000) {
+          return res.status(409).json({ success: false, message: 'An account with this email address already exists. Please sign in.' });
+        }
+        throw dbErr;
+      }
+      // Also backup to persistent disk storage
+      const currentUsers = loadPersistentUsers();
+      currentUsers.push(userPayload);
+      savePersistentUsers(currentUsers);
+
       const token = signToken({
         id: created.id,
         name: created.name,
@@ -68,13 +116,16 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // In-memory fallback
-    const memoryExisting = memoryUsers.find((u) => u.email === cleanEmail);
-    if (memoryExisting) {
+    // Persistent storage fallback when MongoDB Atlas is offline or not yet connected
+    const currentUsers = loadPersistentUsers();
+    const existing = currentUsers.find((u) => u.email === cleanEmail);
+    if (existing) {
       return res.status(409).json({ success: false, message: 'An account with this email address already exists.' });
     }
 
-    memoryUsers.push(userPayload);
+    currentUsers.push(userPayload);
+    savePersistentUsers(currentUsers);
+
     const token = signToken({
       id: userPayload.id,
       name: userPayload.name,
@@ -84,7 +135,7 @@ exports.register = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      mode: 'memory_fallback',
+      mode: 'persistent_storage',
       message: 'Account created successfully.',
       token,
       user: {
@@ -109,14 +160,26 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return res.status(400).json({ success: false, message: 'Please provide both email and password.' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
 
     if (mongoose.connection.readyState === 1) {
-      const user = await User.findOne({ email: cleanEmail });
+      let user = await User.findOne({ email: cleanEmail });
+      if (!user) {
+        // If user was created in persistent disk cache, import to MongoDB
+        const diskUsers = loadPersistentUsers();
+        const diskUser = diskUsers.find((u) => u.email === cleanEmail);
+        if (diskUser) {
+          try {
+            user = await User.create(diskUser);
+          } catch (_) {
+            user = diskUser;
+          }
+        }
+      }
       if (!user) {
         return res.status(401).json({ success: false, message: 'Invalid email address or password.' });
       }
@@ -150,8 +213,9 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // In-memory fallback
-    const user = memoryUsers.find((u) => u.email === cleanEmail);
+    // Persistent storage fallback
+    const currentUsers = loadPersistentUsers();
+    const user = currentUsers.find((u) => u.email === cleanEmail);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email address or password.' });
     }
@@ -170,7 +234,7 @@ exports.login = async (req, res, next) => {
 
     return res.json({
       success: true,
-      mode: 'memory_fallback',
+      mode: 'persistent_storage',
       message: 'Signed in successfully.',
       token,
       user: {
@@ -194,19 +258,29 @@ exports.login = async (req, res, next) => {
 exports.ownerLogin = async (req, res, next) => {
   try {
     const { passcode, password } = req.body;
-    const inputPasscode = (passcode || password || '').trim();
+    const submittedPasscode = passcode || password;
+    const inputPasscode = typeof submittedPasscode === 'string' ? submittedPasscode.trim() : '';
 
     if (!inputPasscode) {
       return res.status(400).json({ success: false, message: 'Owner passcode required.' });
     }
 
-    const configuredPasscode = process.env.OWNER_PASSCODE;
-    const validPasscodes = ['annapurna2026', 'admin123', 'owner', 'annapurna'];
-    if (configuredPasscode) {
-      validPasscodes.push(configuredPasscode.trim());
-    }
+    const configuredPasscode = (process.env.OWNER_PASSCODE || '').trim();
+    // Default owner passcodes: configured from env, or standard agency owner credentials
+    const acceptedPasscodes = Array.from(new Set([
+      configuredPasscode,
+      'annapurna2026',
+      'admin123',
+      'owner',
+      'annapurna',
+    ].filter(Boolean)));
 
-    const isAuthorized = validPasscodes.includes(inputPasscode);
+    const isAuthorized = acceptedPasscodes.some((target) => {
+      const tBuf = Buffer.from(target);
+      const sBuf = Buffer.from(inputPasscode);
+      return tBuf.length === sBuf.length && crypto.timingSafeEqual(tBuf, sBuf);
+    });
+
     if (!isAuthorized) {
       return res.status(401).json({ success: false, message: 'Invalid owner passcode or credentials.' });
     }
@@ -254,28 +328,22 @@ exports.getMe = async (req, res, next) => {
       });
     }
 
+    // Customer lookup
     if (mongoose.connection.readyState === 1) {
-      const user = await User.findOne({ id: req.user.id });
+      const user = await User.findOne({ id: req.user.id }).lean();
       if (user) {
+        delete user.password;
         return res.json({ success: true, user });
       }
     }
 
-    const memoryUser = memoryUsers.find((u) => u.id === req.user.id);
-    if (memoryUser) {
-      return res.json({
-        success: true,
-        user: {
-          id: memoryUser.id,
-          name: memoryUser.name,
-          email: memoryUser.email,
-          phone: memoryUser.phone,
-          role: memoryUser.role,
-          address: memoryUser.address,
-          city: memoryUser.city,
-          pincode: memoryUser.pincode,
-        },
-      });
+    // Persistent storage lookup
+    const currentUsers = loadPersistentUsers();
+    const user = currentUsers.find((u) => u.id === req.user.id || u.email === req.user.email);
+    if (user) {
+      const sanitized = { ...user };
+      delete sanitized.password;
+      return res.json({ success: true, user: sanitized });
     }
 
     return res.json({
@@ -284,11 +352,12 @@ exports.getMe = async (req, res, next) => {
         id: req.user.id,
         name: req.user.name,
         email: req.user.email,
-        role: req.user.role,
+        role: req.user.role || 'customer',
       },
     });
   } catch (error) {
     next(error);
   }
 };
-
+exports.loadPersistentUsers = loadPersistentUsers;
+exports.savePersistentUsers = savePersistentUsers;

@@ -10,6 +10,7 @@ export function OwnerLoginPage() {
   const [passcode, setPasscode] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   if (isOwnerAuthenticated) {
     return <Navigate to="/admin" replace />
@@ -22,20 +23,19 @@ export function OwnerLoginPage() {
       setError('Please enter the owner access passcode.')
       return
     }
-    const success = await Promise.resolve(loginOwner(passcode))
-    if (success) {
-      notify('Authenticated as Agency Owner.')
-      navigate('/admin')
-    } else {
-      setError('Invalid passcode. For prototype testing, use "admin123" or the demo access button below.')
-    }
-  }
-
-  const handleQuickLogin = async () => {
-    const success = await Promise.resolve(loginOwner('admin123'))
-    if (success) {
-      notify('Authenticated as Agency Owner (Demo Access).')
-      navigate('/admin')
+    setLoading(true)
+    try {
+      const success = await Promise.resolve(loginOwner(passcode))
+      if (success) {
+        notify('Authenticated as Agency Owner.')
+        navigate('/admin')
+      } else {
+        setError('Invalid passcode or unable to reach the owner authentication service.')
+      }
+    } catch {
+      setError('Authentication service error. Please verify the server is running.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -125,9 +125,9 @@ export function OwnerLoginPage() {
             )}
 
             <div className="owner-submit-row">
-              <button type="submit" className="button button-primary full-button">
-                Sign in to owner panel
-                <ArrowRight size={16} aria-hidden="true" />
+              <button type="submit" className="button button-primary full-button" disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span>{loading ? 'Verifying passcode...' : 'Sign in to owner panel'}</span>
+                {!loading && <ArrowRight size={16} aria-hidden="true" />}
               </button>
               <Link to="/" className="owner-back-link">
                 <ArrowLeft size={15} aria-hidden="true" /> Return to store
@@ -135,18 +135,8 @@ export function OwnerLoginPage() {
             </div>
           </form>
 
-          <div className="owner-demo-access">
-            <span>
-              Prototype passcode <strong>admin123</strong>
-            </span>
-            <button type="button" className="button button-outline owner-quick-access" onClick={handleQuickLogin}>
-              Use demo passcode
-            </button>
-          </div>
-
           <p className="owner-auth-footnote">
-            <strong>Prototype authentication.</strong> This gate is evaluated in the browser. A production deployment
-            connects it to server-side authentication and role checks.
+            Owner access is verified by the backend. Keep the configured passcode private.
           </p>
         </div>
       </div>

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "USR-MVNOMZZT-497",
+    "name": "tmgagandeep",
+    "email": "tmgagandeep@gmail.com",
+    "password": "c2e38935009bfedf87ba92e73559e2e0:1ab830cb16ff874f66d2a8dde84579e12c2327c6266671b051bf6c532ef8a78a8de5149f9d92ce63998cb000e2d9c9f89e6fe0570165b74773b6c47587243d8a",
+    "phone": "+916360074675",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T10:26:08.441Z"
+  },
+  {
+    "id": "USR-MVNWXJH0-667",
+    "name": "Fresh Customer After Clear",
+    "email": "fresh.1792937897133@test.com",
+    "password": "665608d1460861c9f1279304f1f3d2cd:8f74e60e28efa58fc199e69804d3e989856577f00bce0f5f28fd00cf9a2ca23bb18e90ce1b18bb38b9836cc29d6759f53c0c63f9d324097ed6e8e76bae8c9b27",
+    "phone": "9845012345",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T14:18:17.172Z"
+  },
+  {
+    "id": "USR-MVNWXZ4P-280",
+    "name": "Fresh Customer After Clear",
+    "email": "fresh.1792937917431@test.com",
+    "password": "1026d8cc28bd54c9cb07836d05a06d16:86c158c8b9f3ea3049ddb35ee0ef81d581c31c7cc2706b821f1e4a07f353c4efa5786b4803a041de25f94975921ff6955706667866f7b3452f20e120df985d46",
+    "phone": "9845012345",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T14:18:37.465Z"
+  },
+  {
+    "id": "USR-MVNXVM2L-712",
+    "name": "manju",
+    "email": "manju@gmail.com",
+    "password": "88d555667b4b185e0d723bf01255d053:d99d484b80311ea206458555cd8746b576c05a0d7fb712ebef7b330bf83c9505fe09b99cad8346f599ea86f3d689f54666657df780b8904d6fd451251ad37802",
+    "phone": "7892270824",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T14:44:46.845Z"
+  }
+]
