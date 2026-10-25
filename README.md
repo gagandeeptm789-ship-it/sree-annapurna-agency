@@ -159,6 +159,15 @@ npm run dev
 - **Owner / Admin Dashboard (`/admin`, `/admin/orders`)**:
   - Dedicated operations console for viewing incoming orders, updating fulfillment statuses (Pending → Confirmed → Processing → Dispatched → Delivered), and managing products.
 
+## Order persistence, live synchronization, and deployment
+
+- MongoDB is authoritative for customer accounts, orders, payment references, invoices, and owner order updates. Order placement and sign-in fail with a retryable service error if MongoDB is unavailable; no local or in-memory order is reported as successfully placed.
+- Orders are polled automatically every five seconds while the browser tab is active. Owners see the shared order queue, while customers receive only orders linked to their authenticated account. Invoice and order-detail endpoints enforce the same ownership check.
+- Order creation requires a unique idempotency key, recalculates prices from the backend catalog, checks and deducts stock in a MongoDB transaction, and stores a status history. Status changes and payment verification are separate operations; entering a UTR only creates a pending-verification payment record.
+- The seed script only upserts the genuine brand and product catalog. It does not create customers, transactions, or orders.
+- Configure `backend/.env` with a MongoDB URI, a random `JWT_SECRET` of at least 32 characters, and a private `OWNER_PASSCODE`. Do not use the example file as a source of production secrets.
+- The frontend uses `/api` by default, which is proxied to the local backend by Vite. When frontend and backend are deployed separately, set the public backend API base URL in `frontend/.env` as `VITE_API_URL=https://your-api-host.example/api`, and set `CORS_ORIGIN` in `backend/.env` to the exact frontend origin. Port-forwarded deployments must expose the API through the configured backend URL or the same-origin `/api` proxy.
+
 1. Open `backend/.env` and paste your MongoDB connection string:
    ```env
    PORT=5000
@@ -173,7 +182,7 @@ npm run dev
 3. The script will automatically load all **6 verified brands** and **33 packaged products** into your Atlas collections with zero fake operational records.
 
 ---
-
+   
 ## 🔒 Security & Separation of Panels
 
 - **Customer Website (`/`, `/shop`, `/cart`, `/checkout`, `/account/orders`)**:

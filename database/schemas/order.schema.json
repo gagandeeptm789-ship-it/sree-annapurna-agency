@@ -12,6 +12,18 @@
       "type": "string",
       "description": "Human-readable order identifier (e.g. SAA-281930-492)"
     },
+    "idempotencyKey": {
+      "type": "string",
+      "description": "Client-generated UUID used to prevent duplicate order submissions"
+    },
+    "user": {
+      "type": "string",
+      "description": "Authenticated customer account ID"
+    },
+    "isGuest": {
+      "type": "boolean",
+      "default": false
+    },
     "customer": {
       "type": "string"
     },
@@ -56,13 +68,41 @@
     },
     "status": {
       "type": "string",
-      "enum": ["Pending", "Confirmed", "Processing", "Dispatched", "Delivered", "Cancelled"],
+      "enum": ["Pending", "Confirmed", "Processing", "Packed", "Shipped", "Out for Delivery", "Dispatched", "Delivered", "Cancelled"],
       "default": "Pending"
+    },
+    "statusHistory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["status", "changedAt"],
+        "properties": {
+          "status": { "type": "string" },
+          "changedAt": { "type": "string", "format": "date-time" },
+          "changedBy": { "type": "string" }
+        }
+      }
     },
     "payment": {
       "type": "string",
-      "enum": ["Pending", "Paid", "Refunded"],
+      "enum": ["Pending", "Paid", "Failed", "Refunded", "Pending Verification"],
       "default": "Pending"
+    },
+    "paymentMethod": {
+      "type": "string"
+    },
+    "paymentDetails": {
+      "type": "object",
+      "properties": {
+        "utrNumber": { "type": "string" },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["", "Pending Verification", "Verified", "Rejected"]
+        },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "verifiedBy": { "type": "string" }
+      }
     },
     "date": {
       "type": "string",
@@ -70,4 +110,3 @@
     }
   }
 }
-

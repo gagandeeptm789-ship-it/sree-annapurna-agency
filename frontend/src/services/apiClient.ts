@@ -1,7 +1,17 @@
-import type { Brand, DemoOrder, OrderPlacementData, OrderStatus, PaymentStatus, Product } from '../types'
+import type { Brand, DemoOrder, OrderPlacementData, OrderStatus, Product } from '../types'
 
 const CUSTOMER_TOKEN_KEY = 'saa-customer-token'
 const OWNER_TOKEN_KEY = 'saa-owner-token'
+
+function formatOrderDate(value: string | Date): string {
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 export interface ApiResponse<T> {
   success: boolean
@@ -19,7 +29,7 @@ export interface ApiResponse<T> {
 }
 
 class ApiClient {
-  private baseUrl = '/api'
+  private baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '')
 
   getCustomerToken(): string | null {
     try {
@@ -43,7 +53,7 @@ class ApiClient {
 
   getOwnerToken(): string | null {
     try {
-      return sessionStorage.getItem(OWNER_TOKEN_KEY)
+      return sessionStorage.getItem(OWNER_TOKEN_KEY) || localStorage.getItem(OWNER_TOKEN_KEY)
     } catch {
       return null
     }
@@ -52,12 +62,14 @@ class ApiClient {
   setOwnerToken(token: string): void {
     try {
       sessionStorage.setItem(OWNER_TOKEN_KEY, token)
+      localStorage.setItem(OWNER_TOKEN_KEY, token)
     } catch {}
   }
 
   clearOwnerToken(): void {
     try {
       sessionStorage.removeItem(OWNER_TOKEN_KEY)
+      localStorage.removeItem(OWNER_TOKEN_KEY)
     } catch {}
   }
 
@@ -79,6 +91,8 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${ownerToken}`
     } else if (customerToken) {
       headers['Authorization'] = `Bearer ${customerToken}`
+    } else if (ownerToken && endpoint === '/auth/me') {
+      headers['Authorization'] = `Bearer ${ownerToken}`
     }
 
     try {
@@ -153,21 +167,57 @@ class ApiClient {
   }
 
   // --- Orders ---
-  async getOrders(customerEmail?: string): Promise<DemoOrder[] | null> {
-    const endpoint = customerEmail ? `/orders?customerEmail=${encodeURIComponent(customerEmail)}` : '/orders'
-    const res = await this.request<DemoOrder[]>(endpoint)
+  async getOrders(): Promise<DemoOrder[] | null> {
+    const res = await this.request<DemoOrder[]>('/orders')
     if (res.ok && res.data?.data) {
       // Map API Order schema to DemoOrder
       return (res.data.data as any[]).map((o) => ({
         id: o.orderId || o.id,
+        user: o.user ? String(o.user) : undefined,
         customer: o.customer,
         customerEmail: o.customerEmail,
         phone: o.phone,
         deliveryDetails: o.deliveryDetails,
-        date: new Date(o.date || o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        date: formatOrderDate(o.date || o.createdAt),
+        updatedAt: o.updatedAt,
+        statusHistory: o.statusHistory || [],
         total: o.total,
         status: o.status,
         payment: o.payment,
+        paymentMethod: o.paymentMethod,
+        paymentDetails: o.paymentDetails,
+        accessToken: o.accessToken,
+        isGuest: o.isGuest,
+        items: o.items,
+      }))
+    }
+    return null
+  }
+
+  async getOwnerOrders(): Promise<DemoOrder[] | null> {
+    // Explicitly call with owner authorization header so backend returns all customer orders
+    const res = await this.request<DemoOrder[]>('/orders/owner/all', {
+      headers: { 'x-require-owner': 'true' },
+    })
+    const data = res.ok && res.data?.data ? res.data.data : null
+    if (data) {
+      return (data as any[]).map((o) => ({
+        id: o.orderId || o.id,
+        user: o.user ? String(o.user) : undefined,
+        customer: o.customer,
+        customerEmail: o.customerEmail,
+        phone: o.phone,
+        deliveryDetails: o.deliveryDetails,
+        date: formatOrderDate(o.date || o.createdAt),
+        updatedAt: o.updatedAt,
+        statusHistory: o.statusHistory || [],
+        total: o.total,
+        status: o.status,
+        payment: o.payment,
+        paymentMethod: o.paymentMethod,
+        paymentDetails: o.paymentDetails,
+        accessToken: o.accessToken,
+        isGuest: o.isGuest,
         items: o.items,
       }))
     }
@@ -180,14 +230,21 @@ class ApiClient {
       const o = res.data.data
       return {
         id: o.orderId || o.id,
+        user: o.user ? String(o.user) : undefined,
         customer: o.customer,
         customerEmail: o.customerEmail,
         phone: o.phone,
         deliveryDetails: o.deliveryDetails,
-        date: new Date(o.date || o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        date: formatOrderDate(o.date || o.createdAt),
+        updatedAt: o.updatedAt,
+        statusHistory: o.statusHistory || [],
         total: o.total,
         status: o.status,
         payment: o.payment,
+        paymentMethod: o.paymentMethod,
+        paymentDetails: o.paymentDetails,
+        accessToken: o.accessToken,
+        isGuest: o.isGuest,
         items: o.items,
       }
     }
@@ -195,11 +252,13 @@ class ApiClient {
   }
 
   async createOrder(
-    data: OrderPlacementData & { items: { productId: string; name: string; quantity: number; pack?: string; image?: string }[] }
-  ): Promise<{ success: boolean; orderId?: string; accessToken?: string; message?: string; total?: number }> {
+    data: OrderPlacementData & { items: { productId: string; name: string; quantity: number; pack?: string; image?: string }[] },
+    idempotencyKey: string
+  ): Promise<{ success: boolean; orderId?: string; accessToken?: string; user?: string; message?: string; total?: number }> {
     const res = await this.request<any>('/orders', {
       method: 'POST',
       body: JSON.stringify(data),
+      headers: { 'Idempotency-Key': idempotencyKey },
     })
     if (res.ok && (res.data?.data || res.data?.orderId)) {
       const order = res.data.data || res.data
@@ -207,19 +266,20 @@ class ApiClient {
         success: true,
         orderId: order.orderId,
         accessToken: order.accessToken,
+        user: order.user ? String(order.user) : undefined,
         total: order.total,
       }
     }
     return {
       success: false,
-      message: res.data?.message || 'Server was unable to process order. Falling back to local store.',
+      message: res.data?.message || 'Server was unable to place the order. Please try again.',
     }
   }
 
-  async updateOrderStatus(id: string, status?: OrderStatus, payment?: PaymentStatus): Promise<boolean> {
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
     const res = await this.request<any>(`/orders/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, payment }),
+      body: JSON.stringify({ status }),
       headers: { 'x-require-owner': 'true' },
     })
     return res.ok
@@ -263,10 +323,35 @@ class ApiClient {
   }
 
   async getMe(): Promise<{ user?: any; owner?: boolean } | null> {
-    const res = await this.request<any>('/auth/me')
-    if (res.ok && res.data?.user) {
-      return { user: res.data.user, owner: res.data.user.role === 'owner' }
+    const customerToken = this.getCustomerToken()
+    const ownerToken = this.getOwnerToken()
+
+    if (!customerToken && !ownerToken) return null
+
+    // 1. If customer token is present, verify customer session
+    if (customerToken) {
+      const res = await this.request<any>('/auth/me')
+      if (res.ok && res.data?.user) {
+        return { user: res.data.user, owner: res.data.user.role === 'owner' }
+      }
+      if (res.status === 401) {
+        this.clearCustomerToken()
+      }
     }
+
+    // 2. If owner token is present, verify owner session
+    if (ownerToken) {
+      const res = await this.request<any>('/auth/me', {
+        headers: { 'x-require-owner': 'true' },
+      })
+      if (res.ok && res.data?.user) {
+        return { user: res.data.user, owner: true }
+      }
+      if (res.status === 401) {
+        this.clearOwnerToken()
+      }
+    }
+
     return null
   }
 
@@ -293,7 +378,7 @@ class ApiClient {
     return `${this.baseUrl}/orders/${orderId}/invoice/pdf${qs}`
   }
 
-  async downloadInvoicePdf(orderId: string, token?: string, fallbackOrder?: any): Promise<{ success: boolean; message?: string }> {
+  async downloadInvoicePdf(orderId: string, token?: string, _fallbackOrder?: unknown): Promise<{ success: boolean; message?: string }> {
     try {
       const headers: Record<string, string> = {}
       const ownerToken = this.getOwnerToken()
@@ -303,19 +388,7 @@ class ApiClient {
       if (token) headers['x-order-token'] = token
 
       const url = this.getInvoicePdfUrl(orderId, token)
-      let res = await fetch(url, { headers })
-
-      if (!res.ok && (res.status === 404 || res.status === 400) && fallbackOrder) {
-        // Fallback: Generate PDF directly if order is not found on backend (e.g. offline dev or memory reset)
-        res = await fetch(`${this.baseUrl}/invoices/generate-pdf`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          body: JSON.stringify(fallbackOrder),
-        })
-      }
+      const res = await fetch(url, { headers })
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => null)
@@ -409,4 +482,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient()
-

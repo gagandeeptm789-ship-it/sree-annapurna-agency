@@ -13,9 +13,25 @@ const app = express();
 // Connect to MongoDB Atlas (non-blocking in development)
 connectDB();
 
-// Core Middleware
-const corsOrigin = process.env.CORS_ORIGIN || '*';
-app.use(cors({ origin: corsOrigin, credentials: true }));
+// Core Middleware: Support Localhost, Network IP & Forwarded Tunnels (VS Code, ngrok, localtunnel)
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' || process.env.CORS_ORIGIN === '*') {
+      return callback(null, true);
+    }
+    const configured = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim());
+    if (configured.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow tunnels (VS Code port forwarding, ngrok, localtunnel, cloudflare, LAN Wi-Fi IPs)
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|.*\.app\.github\.dev|.*\.ngrok.*|.*\.loca\.lt|.*\.trycloudflare\.com)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,7 +53,7 @@ app.get('/api/health', (req, res) => {
   if (isDbConnected) {
     dbStatus = 'connected';
   } else if (!hasUri) {
-    dbStatus = 'not_configured_local_fallback';
+    dbStatus = 'not_configured';
   } else {
     dbStatus = 'connection_failed_or_offline';
   }
@@ -81,10 +97,10 @@ const PORT = process.env.PORT || 5000;
 let server = null;
 
 if (require.main === module) {
-  server = app.listen(PORT, () => {
+  server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n======================================================`);
     console.log(`🚀 SREE ANNAPURNA AGENCY BACKEND SERVER`);
-    console.log(`📡 URL: http://localhost:${PORT}`);
+    console.log(`📡 URL: http://0.0.0.0:${PORT} (Accessible via localhost and network/tunnels)`);
     console.log(`🩺 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`======================================================\n`);

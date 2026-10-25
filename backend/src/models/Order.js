@@ -52,6 +52,12 @@ const OrderSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    idempotencyKey: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
     accessToken: {
       type: String,
       required: true,
@@ -92,10 +98,21 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Confirmed', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'],
+      enum: ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Out for Delivery', 'Dispatched', 'Delivered', 'Cancelled'],
       default: 'Pending',
       index: true,
     },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Out for Delivery', 'Dispatched', 'Delivered', 'Cancelled'],
+          required: true,
+        },
+        changedAt: { type: Date, required: true },
+        changedBy: { type: String, default: '' },
+      },
+    ],
     paymentMethod: {
       type: String,
       default: 'Cash on Delivery / Agency Invoice',

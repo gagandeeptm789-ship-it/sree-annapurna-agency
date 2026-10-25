@@ -1,0 +1,110 @@
+[
+  {
+    "id": "USR-MVNOC4LL-630",
+    "name": "Pooja Hegde",
+    "email": "test.user.1792923461120@example.com",
+    "password": "2fb04dd6f7651c27d23e0ca1be1b02ab:fd972189ce087bde774d070cb4bfb04349ece021e3516c2e3c80dff3e14a734248fb47c4d1c4cd7833ba66a80c2540939bcc8997ed53bf3a72fa9f28a538266e",
+    "phone": "9845112233",
+    "role": "customer",
+    "address": "Shop #5, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:17:41.193Z"
+  },
+  {
+    "id": "USR-MVNOCLX2-769",
+    "name": "Pooja Hegde",
+    "email": "test.user.1792923483566@example.com",
+    "password": "9cddf29730196c3d3f127ad3dd9ae7b5:2f1f700668e13a11da20d391d431c78661c0964fa8cc9eed8633d4d19d280ca7fc8f0ee1c033a08994286114da8aaec6a837b6a3c732602ffa14390b7176ea24",
+    "phone": "9845112233",
+    "role": "customer",
+    "address": "Shop #5, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:18:03.638Z"
+  },
+  {
+    "id": "USR-MVNOD53M-948",
+    "name": "Pooja Hegde",
+    "email": "test.user.1792923508423@example.com",
+    "password": "4c45be2c6ce1d39cad8d5edfa91220df:e68ff3ab9663d83973d8097d30a9fe1ca1fc74791bcf7ab228e693e2124f0e40772683e9fb7bdf314bd4f927cfb35abd90a770a5ccfaf54fdb1fb4e64286e5ab",
+    "phone": "9845112233",
+    "role": "customer",
+    "address": "Shop #5, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:18:28.498Z"
+  },
+  {
+    "id": "USR-MVNOEI3M-900",
+    "name": "Pooja Hegde",
+    "email": "test.user.1792923571923@example.com",
+    "password": "95c239d89dc10c6b5a439e109f78cf5f:7ca7d635848a413e3a52dd1dc7661b9e1efa1580d08016fffaab1403d39240fd58efd1b2081ee4161d21757b26d0bfe6d1c4a09b401ceae4d75311648e9c8e9e",
+    "phone": "9845112233",
+    "role": "customer",
+    "address": "Shop #5, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:19:32.002Z"
+  },
+  {
+    "id": "USR-MVNOFQZA-868",
+    "name": "Pooja Hegde",
+    "email": "test.user.1792923630091@example.com",
+    "password": "8602ba17586196b3b5b3dcc40987c893:138747ce81cce733e2803d1966b079131af67ea01bccba05ae0528d58368fc5376f22b580543fb5b92f0203656f00526bb2196984d6b3055660cb4b995d19ce2",
+    "phone": "9845112233",
+    "role": "customer",
+    "address": "Shop #5, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:20:30.166Z"
+  },
+  {
+    "id": "USR-MVNOG2I2-229",
+    "name": "Ananya Sharma (Forwarded Customer)",
+    "email": "friend.customer.1792923645024@gmail.com",
+    "password": "018091829b8cdee90a86174af3f98af4:f9ec82d0b6256b5e2b9d365007c1219b2faf02d0998540ea918a9b0e2dc558ed528a3898b1e9c28fbc14f4681940dbcce153295f266bd91fd4e9cfe8df585731",
+    "phone": "9845012345",
+    "role": "customer",
+    "address": "Plot 42, Kuvempu Road, Jayanagar",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:20:45.098Z"
+  },
+  {
+    "id": "USR-MVNOGQ88-812",
+    "name": "Ramesh Kumar (Customer A)",
+    "email": "ramesh.a.1792923675772@example.com",
+    "password": "d73154369b16e93c8a7498d2a0253350:f6a8f08f934d7e5b274fd1d0ab584c2993413eca184688a5d2dee4ffbc170fa911d92548fa8e84a6ec7f4a2e6b5c00579ba5262323b2272c9b04333eef7aff87",
+    "phone": "9876543210",
+    "role": "customer",
+    "address": "Shop #12, Market Road",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:21:15.848Z"
+  },
+  {
+    "id": "USR-MVNOGQAU-590",
+    "name": "Suresh Patil (Customer B)",
+    "email": "suresh.b.1792923675859@example.com",
+    "password": "ecb14597ecfc4f028b6adf0256dbb1d1:631681abbaa1458d5cab9f6b43d4357a9fe2de4b2863196215b58e11431d23b482d15fe92771527f87bd0572e1706f028c5c43e8cc979da934dda18d1ace46cc",
+    "phone": "9123456780",
+    "role": "customer",
+    "address": "Shop #45, Gandhi Bazaar",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T10:21:15.942Z"
+  },
+  {
+    "id": "USR-MVNOMZZT-497",
+    "name": "tmgagandeep",
+    "email": "tmgagandeep@gmail.com",
+    "password": "c2e38935009bfedf87ba92e73559e2e0:1ab830cb16ff874f66d2a8dde84579e12c2327c6266671b051bf6c532ef8a78a8de5149f9d92ce63998cb000e2d9c9f89e6fe0570165b74773b6c47587243d8a",
+    "phone": "+916360074675",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T10:26:08.441Z"
+  }
+]

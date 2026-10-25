@@ -5,9 +5,14 @@ const Product = require('../models/Product');
 
 // Fallback seed loader for offline/local development
 const getFallbackProducts = () => {
-  const seedPath = path.resolve(__dirname, '../../../database/seed/products.json');
-  if (fs.existsSync(seedPath)) {
-    return JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  const possiblePaths = [
+    path.resolve(__dirname, '../../database/seed/products.json'),
+    path.resolve(__dirname, '../../../database/seed/products.json'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
   }
   return [];
 };

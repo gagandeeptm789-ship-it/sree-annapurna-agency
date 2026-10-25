@@ -28,47 +28,37 @@ function formatDate(dateValue) {
   });
 }
 
-// Fetch order safely with multi-tiered authorization check (Owner, Customer, Guest Token, Phone/Email verification)
+// Fetch order safely with strict authorization check (Owner, Authenticated Customer owning the order, or matching Guest Token)
 async function getAuthorizedOrder(id, reqUser, query = {}, headers = {}) {
-  let order = null;
-  const cleanId = String(id || '').trim();
-
-  if (mongoose.connection.readyState === 1) {
-    order = await Order.findOne({
-      $or: [
-        { orderId: cleanId },
-        { orderId: new RegExp(`^${cleanId}$`, 'i') },
-        { _id: mongoose.isValidObjectId(cleanId) ? cleanId : null },
-      ],
-    }).lean();
-  } else {
-    const memoryOrders = require('./orderController').memoryOrders || [];
-    order = memoryOrders.find(
-      (o) => (o.orderId && o.orderId.toLowerCase() === cleanId.toLowerCase()) ||
-             (o.id && o.id.toLowerCase() === cleanId.toLowerCase())
-    );
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error('Invoice service is unavailable because the database is not connected.');
+    error.statusCode = 503;
+    throw error;
   }
+
+  const cleanId = String(id || '').trim();
+  const queryFilter = mongoose.isValidObjectId(cleanId)
+    ? { $or: [{ orderId: cleanId }, { _id: cleanId }] }
+    : { orderId: cleanId };
+  const order = await Order.findOne(queryFilter).lean();
 
   if (!order) return null;
 
   const isOwner = reqUser && reqUser.role === 'owner';
-  const customerEmail = reqUser && reqUser.email ? reqUser.email.trim().toLowerCase() : null;
+  const customerUserId = reqUser && reqUser.id ? String(reqUser.id) : null;
   const guestToken = query.token || headers['x-order-token'];
-  const verifyPhone = query.phone ? query.phone.trim() : null;
-  const verifyEmail = query.email ? query.email.trim().toLowerCase() : null;
 
-  // Check valid authorization conditions
+  // Strict authorization check:
+  // 1. Owner can access any invoice
   const isOwnerAuthorized = Boolean(isOwner);
-  const isCustomerAuthorized = Boolean(customerEmail && order.customerEmail && order.customerEmail.trim().toLowerCase() === customerEmail);
-  const isUserIdAuthorized = Boolean(reqUser && reqUser.id && order.user && String(order.user) === String(reqUser.id));
-  const isTokenAuthorized = Boolean(guestToken && order.accessToken && guestToken === order.accessToken);
-  const isPhoneAuthorized = Boolean(
-    (verifyPhone && order.phone && order.phone.replace(/\D/g, '') === verifyPhone.replace(/\D/g, '')) ||
-    (reqUser && reqUser.phone && order.phone && order.phone.replace(/\D/g, '') === reqUser.phone.replace(/\D/g, ''))
+  // 2. Authenticated customer must match order.user strictly
+  const isUserIdAuthorized = Boolean(customerUserId && order.user && String(order.user) === customerUserId);
+  // 3. Guest with matching cryptographic accessToken
+  const isTokenAuthorized = Boolean(
+    !reqUser && order.isGuest && guestToken && order.accessToken && guestToken === order.accessToken
   );
-  const isEmailQueryAuthorized = Boolean(verifyEmail && order.customerEmail && order.customerEmail.trim().toLowerCase() === verifyEmail);
 
-  if (!isOwnerAuthorized && !isCustomerAuthorized && !isUserIdAuthorized && !isTokenAuthorized && !isPhoneAuthorized && !isEmailQueryAuthorized) {
+  if (!isOwnerAuthorized && !isUserIdAuthorized && !isTokenAuthorized) {
     return 'UNAUTHORIZED';
   }
 
@@ -106,7 +96,8 @@ exports.getInvoicePdf = async (req, res, next) => {
     const order = await getAuthorizedOrder(id, req.user, req.query, req.headers);
 
     if (order === 'UNAUTHORIZED') {
-      return res.status(403).json({
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({
         success: false,
         message: 'Access denied: You are not authorized to download this invoice.',
       });
@@ -140,7 +131,8 @@ exports.getInvoice = async (req, res, next) => {
     const order = await getAuthorizedOrder(id, req.user, req.query, req.headers);
 
     if (order === 'UNAUTHORIZED') {
-      return res.status(403).json({ success: false, message: 'You are not authorized to access this invoice.' });
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({ success: false, message: 'You are not authorized to access this invoice.' });
     }
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order for this invoice was not found.' });
@@ -189,7 +181,8 @@ exports.getInvoiceHtml = async (req, res, next) => {
     const order = await getAuthorizedOrder(id, req.user, req.query, req.headers);
 
     if (order === 'UNAUTHORIZED') {
-      return res.status(403).send('<h2>Access Denied: You are not authorized to view this invoice.</h2>');
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).send('<h2>Access Denied: You are not authorized to view this invoice.</h2>');
     }
     if (!order) {
       return res.status(404).send('<h2>Invoice Not Found</h2>');

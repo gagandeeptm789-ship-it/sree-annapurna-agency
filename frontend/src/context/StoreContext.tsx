@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AdminRecord, Brand, CartItem, Customer, DemoOrder, OrderPlacementData, Product } from '../types'
 import { createEmptySnapshot, demoDataService, type StoreSnapshot } from '../services/demoService'
 import { initialBrands, initialProducts } from '../data/catalog'
@@ -9,20 +9,19 @@ type PersistedState = StoreSnapshot
 export interface StoreValue extends PersistedState {
   customer: Customer | null
   notice: string
+  orderSyncError: string
   isOwnerAuthenticated: boolean
   loginOwner: (passcode: string) => Promise<boolean> | boolean
   logoutOwner: () => void
   customerOrderIds: string[]
   getCustomerOrders: () => DemoOrder[]
+  refreshOwnerOrders: () => Promise<DemoOrder[] | null>
   addToCart: (product: Product, quantity?: number) => boolean
   setCartQuantity: (productId: string, quantity: number) => void
   removeFromCart: (productId: string) => void
   saveProduct: (product: Product) => void
   deleteProduct: (productId: string) => void
   updateOrder: (id: string, update: Partial<DemoOrder>) => void
-  saveOrder: (order: DemoOrder) => void
-  deleteOrder: (id: string) => void
-  placeOrder: (data: OrderPlacementData) => string
   placeOrderAsync: (data: OrderPlacementData) => Promise<{ orderId: string; accessToken?: string; total: number }>
   submitUpiPayment: (orderId: string, utrNumber: string, notes?: string) => Promise<{ success: boolean; message?: string }>
   verifyUpiPayment: (orderId: string, action: 'approve' | 'reject', rejectReason?: string) => Promise<{ success: boolean; message?: string }>
@@ -30,7 +29,6 @@ export interface StoreValue extends PersistedState {
   records: AdminRecord[]
   saveRecord: (record: AdminRecord) => void
   deleteRecord: (id: string) => void
-  signInLocal: (name: string, email: string) => void
   signInRemote: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
   registerRemote: (data: { name: string; email: string; password: string; phone?: string }) => Promise<{ success: boolean; message?: string }>
   signOutLocal: () => void
@@ -132,7 +130,7 @@ function readState(): PersistedState {
           products: products.filter((product) => brandIds.has(product.brandId)),
           brands,
           cart: (value.cart as CartItem[]).filter((item) => productIds.has(item.productId)),
-          orders: value.orders as DemoOrder[],
+          orders: [],
           records: value.records as AdminRecord[],
         }
     }
@@ -142,24 +140,24 @@ function readState(): PersistedState {
   return createEmptySnapshot()
 }
 
-const getStoredCustomerOrderIds = (): string[] => {
-  try {
-    const raw = localStorage.getItem('saa-customer-order-ids')
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<PersistedState>(readState)
-  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [customer, setCustomer] = useState<Customer | null>(() => {
+    try {
+      const raw = localStorage.getItem('saa-customer-profile')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })
+  const [customerOrders, setCustomerOrders] = useState<DemoOrder[]>([])
   const [notice, setNotice] = useState('')
-  const [customerOrderIds, setCustomerOrderIds] = useState<string[]>(getStoredCustomerOrderIds)
+  const [orderSyncError, setOrderSyncError] = useState('')
+  const orderIdempotencyKey = useRef<string | null>(null)
 
   const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem('saa-owner-auth') === 'true' || Boolean(apiClient.getOwnerToken())
+      return Boolean(apiClient.getOwnerToken())
     } catch {
       return false
     }
@@ -215,90 +213,135 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // 3. Check for existing customer or owner session
     apiClient.getMe().then((res) => {
-      if (!isMounted || !res) return
-      if (res.user && res.user.role === 'customer') {
-        setCustomer({
+      if (!isMounted) return
+      if (res && res.user && res.user.role === 'customer') {
+        const c = {
+          id: res.user.id,
           name: res.user.name,
           email: res.user.email,
-        })
-      }
-      if (res.owner) {
+          phone: res.user.phone,
+        }
+        setCustomer(c)
+        try {
+          localStorage.setItem('saa-customer-profile', JSON.stringify(c))
+        } catch {}
+      } else if (res && res.owner) {
         setIsOwnerAuthenticated(true)
-        sessionStorage.setItem('saa-owner-auth', 'true')
+      } else {
+        if (!apiClient.getCustomerToken()) {
+          setCustomer(null)
+          try {
+            localStorage.removeItem('saa-customer-profile')
+          } catch {}
+        }
+        if (!apiClient.getOwnerToken()) {
+          setIsOwnerAuthenticated(false)
+        }
       }
     })
+    if (apiClient.getOwnerToken()) {
+      setIsOwnerAuthenticated(true)
+      apiClient.getOwnerOrders().then((remoteOrders) => {
+        if (!isMounted || !remoteOrders) return
+        setSaved((current) => ({ ...current, orders: remoteOrders }))
+      })
+    }
 
     return () => {
       isMounted = false
     }
   }, [])
 
-  // Sync backend orders when authentication status changes
+  // Poll the authoritative order API so owner and customer views stay current across devices.
   useEffect(() => {
     let isMounted = true
+    let isLoading = false
 
-    if (isOwnerAuthenticated) {
-      apiClient.getOrders().then((remoteOrders) => {
-        if (!isMounted || !remoteOrders) return
-        setSaved((current) => {
-          const existingIds = new Set(current.orders.map((o) => o.id))
-          const fresh = remoteOrders.filter((o) => !existingIds.has(o.id))
-          if (fresh.length === 0) return current
-          return { ...current, orders: [...fresh, ...current.orders] }
-        })
-      })
-    } else if (customer?.email) {
-      apiClient.getOrders(customer.email).then((remoteOrders) => {
-        if (!isMounted || !remoteOrders) return
-        setSaved((current) => {
-          const existingIds = new Set(current.orders.map((o) => o.id))
-          const fresh = remoteOrders.filter((o) => !existingIds.has(o.id))
-          if (fresh.length === 0) return current
-          return { ...current, orders: [...fresh, ...current.orders] }
-        })
-      })
+    const loadOrders = async () => {
+      if (document.visibilityState !== 'visible' || isLoading) return
+      isLoading = true
+      try {
+        let syncError = ''
+        if (isOwnerAuthenticated) {
+          const remoteOrders = await apiClient.getOwnerOrders()
+          if (!isMounted) return
+          if (!remoteOrders) {
+            syncError = 'Unable to sync orders with the backend. Retrying automatically.'
+          } else {
+            setSaved((current) => ({ ...current, orders: remoteOrders }))
+          }
+        }
+        if (customer?.id) {
+          const remoteOrders = await apiClient.getOrders()
+          if (!isMounted) return
+          if (!remoteOrders) {
+            syncError = 'Unable to sync your orders with the backend. Retrying automatically.'
+          } else {
+            setCustomerOrders(remoteOrders)
+          }
+        }
+        setOrderSyncError(syncError)
+      } finally {
+        isLoading = false
+      }
     }
 
+    void loadOrders()
+    const interval = window.setInterval(() => void loadOrders(), 5000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void loadOrders()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       isMounted = false
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [isOwnerAuthenticated, customer?.email])
+  }, [isOwnerAuthenticated, customer?.id])
+
+  const refreshOwnerOrders = async (): Promise<DemoOrder[] | null> => {
+    const remote = await apiClient.getOwnerOrders()
+    if (remote) {
+      setSaved((current) => ({ ...current, orders: remote }))
+      setOrderSyncError('')
+      return remote
+    }
+    setOrderSyncError('Unable to sync orders with the backend. Check the connection and retry.')
+    return null
+  }
 
   const loginOwner = async (passcode: string): Promise<boolean> => {
     // 1. Authenticate with backend API to obtain signed token
     const res = await apiClient.loginOwner(passcode)
     if (res.success) {
-      try {
-        sessionStorage.setItem('saa-owner-auth', 'true')
-      } catch {}
       setIsOwnerAuthenticated(true)
+      const remote = await apiClient.getOwnerOrders()
+      if (remote) {
+        setSaved((current) => ({ ...current, orders: remote }))
+      }
       return true
     }
 
-    // 2. Fallback check for resilience
-    const normalized = passcode.trim().toLowerCase()
-    if (normalized === 'admin123' || normalized === 'owner' || normalized === 'annapurna' || normalized === 'annapurna2026') {
-      try {
-        sessionStorage.setItem('saa-owner-auth', 'true')
-      } catch {}
-      setIsOwnerAuthenticated(true)
-      return true
-    }
     return false
   }
 
   const logoutOwner = () => {
-    try {
-      sessionStorage.removeItem('saa-owner-auth')
-      apiClient.clearOwnerToken()
-    } catch {}
+    apiClient.clearOwnerToken()
     setIsOwnerAuthenticated(false)
   }
 
   const signInRemote = async (email: string, password: string) => {
     const res = await apiClient.login({ email, password })
     if (res.success && res.user) {
-      setCustomer({ name: res.user.name, email: res.user.email })
+      const c = { id: res.user.id, name: res.user.name, email: res.user.email, phone: res.user.phone }
+      setCustomer(c)
+      try {
+        localStorage.setItem('saa-customer-profile', JSON.stringify(c))
+      } catch {}
+      const remoteOrders = await apiClient.getOrders()
+      if (remoteOrders) {
+        setCustomerOrders(remoteOrders)
+      }
       return { success: true }
     }
     return { success: false, message: res.message || 'Invalid credentials' }
@@ -307,30 +350,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const registerRemote = async (data: { name: string; email: string; password: string; phone?: string }) => {
     const res = await apiClient.register(data)
     if (res.success && res.user) {
-      setCustomer({ name: res.user.name, email: res.user.email })
+      const c = { id: res.user.id, name: res.user.name, email: res.user.email, phone: res.user.phone }
+      setCustomer(c)
+      try {
+        localStorage.setItem('saa-customer-profile', JSON.stringify(c))
+      } catch {}
+      setCustomerOrders([])
       return { success: true }
     }
     return { success: false, message: res.message || 'Registration failed' }
   }
 
   const getCustomerOrders = (): DemoOrder[] => {
-    const idsSet = new Set(customerOrderIds)
-    return saved.orders.filter((order) => {
-      if (idsSet.has(order.id)) return true
-      if (customer && customer.email && order.customerEmail?.toLowerCase() === customer.email.toLowerCase()) return true
-      return false
-    })
+    if (!customer) return []
+    return customerOrders
   }
 
   const value = useMemo<StoreValue>(() => ({
     ...saved,
     customer,
     notice,
+    orderSyncError,
     isOwnerAuthenticated,
     loginOwner,
     logoutOwner,
-    customerOrderIds,
+    customerOrderIds: customerOrders.map((o) => o.id),
     getCustomerOrders,
+    refreshOwnerOrders,
     notify: setNotice,
     signInRemote,
     registerRemote,
@@ -385,110 +431,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cart: current.cart.filter((item) => item.productId !== productId),
     })),
     updateOrder: (id, update) => {
-      setSaved((current) => {
-        const order = current.orders.find((item) => item.id === id)
-        if (!order) return current
-        return {
-          ...current,
-          orders: current.orders.map((item) => item.id === id ? { ...item, ...update } : item),
-        }
-      })
-      // Sync status change to backend
-      if (update.status || update.payment) {
-        apiClient.updateOrderStatus(id, update.status, update.payment).catch(() => {})
-      }
-    },
-    saveOrder: (order) => setSaved((current) => ({
-      ...current,
-      orders: current.orders.some((item) => item.id === order.id)
-        ? current.orders.map((item) => item.id === order.id ? order : item)
-        : [order, ...current.orders],
-    })),
-    deleteOrder: (id) => setSaved((current) => ({
-      ...current,
-      orders: current.orders.filter((item) => item.id !== id),
-    })),
-    placeOrder: (data: OrderPlacementData) => {
-      const generatedId = `ORD-${Date.now().toString(36).toUpperCase()}`
-      const orderDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-      const orderItems = saved.cart.map((item) => {
-        const product = saved.products.find((entry) => entry.id === item.productId)
-        return product ? {
-          productId: product.id,
-          name: product.name,
-          pack: item.pack,
-          quantity: item.quantity,
-          unitPrice: product.price,
-          image: product.image,
-        } : null
-      }).filter((item): item is NonNullable<typeof item> => item !== null)
-
-      const newOrder: DemoOrder = {
-        id: generatedId,
-        customer: data.customerName.trim(),
-        customerEmail: data.email.trim(),
-        phone: data.phone.trim(),
-        deliveryDetails: {
-          name: data.customerName.trim(),
-          phone: data.phone.trim(),
-          email: data.email.trim(),
-          address: data.address.trim(),
-          city: data.city.trim(),
-          pincode: data.pincode.trim(),
-          notes: data.notes?.trim() || undefined,
-        },
-        date: orderDate,
-        total: data.total,
-        status: 'Pending',
-        payment: 'Pending',
-        items: orderItems,
-      }
-
-      // Deduct purchased quantities from stock locally
-      setSaved((current) => ({
-        ...current,
-        cart: [],
-        products: current.products.map((p) => {
-          const orderedItem = orderItems.find((i) => i.productId === p.id)
-          if (!orderedItem) return p
-          return { ...p, stock: Math.max(0, p.stock - orderedItem.quantity) }
-        }),
-        orders: [newOrder, ...current.orders],
-      }))
-
-      // Persist order ID to customer's browser session list
-      try {
-        const currentIds = getStoredCustomerOrderIds()
-        const updated = [generatedId, ...currentIds.filter((item) => item !== generatedId)]
-        localStorage.setItem('saa-customer-order-ids', JSON.stringify(updated))
-        setCustomerOrderIds(updated)
-      } catch (err) {
-        console.error('Could not save customer order id to local storage', err)
-      }
-
-      // Asynchronously sync with Backend API
-      apiClient.createOrder({
-        ...data,
-        items: orderItems,
-      }).then((res) => {
-        if (res.success && res.orderId && res.orderId !== generatedId) {
-          // If server provided a canonical order ID (e.g. SAA-...), update the record ID
+      if (update.status) {
+        void apiClient.updateOrderStatus(id, update.status).then(async (success) => {
+          if (!success) {
+            setOrderSyncError('Unable to save the order status. Please retry.')
+            return
+          }
           setSaved((current) => ({
             ...current,
-            orders: current.orders.map((o) => o.id === generatedId ? { ...o, id: res.orderId! } : o),
+            orders: current.orders.map((item) => item.id === id
+              ? { ...item, status: update.status!, updatedAt: new Date().toISOString() }
+              : item),
           }))
-          const currentIds = getStoredCustomerOrderIds()
-          const updated = [res.orderId, ...currentIds.filter((item) => item !== generatedId)]
-          localStorage.setItem('saa-customer-order-ids', JSON.stringify(updated))
-          setCustomerOrderIds(updated)
-        }
-      }).catch(() => {})
-
-      return generatedId
+          await refreshOwnerOrders()
+        })
+      }
     },
     placeOrderAsync: async (data: OrderPlacementData): Promise<{ orderId: string; accessToken?: string; total: number }> => {
-      const generatedId = `ORD-${Date.now().toString(36).toUpperCase()}`
-      const localToken = Math.random().toString(36).slice(2) + Date.now().toString(36)
       const orderDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
       const orderItems = saved.cart.map((item) => {
         const product = saved.products.find((entry) => entry.id === item.productId)
@@ -502,15 +461,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } : null
       }).filter((item): item is NonNullable<typeof item> => item !== null)
 
-      // Try creating on server first to get canonical orderId, accessToken, and verified server total
-      const serverRes = await apiClient.createOrder({
-        ...data,
-        items: orderItems,
-      }).catch(() => null)
-
-      const finalOrderId = serverRes?.success && serverRes.orderId ? serverRes.orderId : generatedId
-      const finalAccessToken = serverRes?.success && serverRes.accessToken ? serverRes.accessToken : localToken
-      const finalTotal = serverRes?.success && serverRes.total !== undefined ? serverRes.total : data.total
+      if (!customer?.id) throw new Error('Please sign in before placing your order.')
+      if (!orderItems.length) throw new Error('Your basket contains no available products.')
+      if (!orderIdempotencyKey.current) orderIdempotencyKey.current = crypto.randomUUID()
+      const serverRes = await apiClient.createOrder(
+        { ...data, items: orderItems },
+        orderIdempotencyKey.current
+      )
+      if (!serverRes.success || !serverRes.orderId) {
+        throw new Error(serverRes.message || 'The order could not be saved. Your basket is unchanged; please retry.')
+      }
+      orderIdempotencyKey.current = null
+      const finalOrderId = serverRes.orderId
+      const finalAccessToken = serverRes.accessToken
+      const finalTotal = serverRes.total ?? data.total
+      const customerUserId = customer.id
 
       const isUpi = data.paymentMethod === 'UPI' || data.paymentMethod === 'UPI / PhonePe'
       const isOnline = data.paymentMethod === 'ONLINE'
@@ -532,7 +497,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const finalOrder: DemoOrder = {
         id: finalOrderId,
         accessToken: finalAccessToken,
-        isGuest: !customer,
+        user: customerUserId,
+        isGuest: false,
         customer: data.customerName.trim(),
         customerEmail: data.email.trim(),
         phone: data.phone.trim(),
@@ -554,6 +520,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         items: orderItems,
       }
 
+      // Add strictly to customer's own order list
+      setCustomerOrders((prev) => [finalOrder, ...prev.filter((o) => o.id !== finalOrderId)])
+
       // Deduct stock locally
       setSaved((current) => ({
         ...current,
@@ -565,15 +534,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
         orders: [finalOrder, ...current.orders.filter((o) => o.id !== finalOrderId)],
       }))
-
-      try {
-        const currentIds = getStoredCustomerOrderIds()
-        const updated = [finalOrderId, ...currentIds.filter((item) => item !== finalOrderId)]
-        localStorage.setItem('saa-customer-order-ids', JSON.stringify(updated))
-        setCustomerOrderIds(updated)
-      } catch (err) {
-        console.error('Could not save customer order id to local storage', err)
-      }
+      setOrderSyncError('')
 
       return {
         orderId: finalOrderId,
@@ -584,28 +545,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     submitUpiPayment: async (orderId: string, utrNumber: string, notes?: string) => {
       const res = await apiClient.submitUpiPayment(orderId, utrNumber, notes)
       if (res.success) {
+        const updater = (o: DemoOrder): DemoOrder => {
+          if (o.id === orderId) {
+            return {
+              ...o,
+              paymentMethod: 'UPI / PhonePe',
+              payment: 'Pending',
+              paymentDetails: {
+                ...(o.paymentDetails || {}),
+                provider: 'phonepe_upi',
+                payeeName: 'GAGAN DEEP',
+                payeeUpiNumber: '6360074675',
+                utrNumber: utrNumber.trim(),
+                verificationStatus: 'Pending Verification',
+                submittedAt: new Date().toISOString(),
+                adminNotes: notes ? notes.trim() : '',
+              },
+            }
+          }
+          return o
+        }
+        setCustomerOrders((prev) => prev.map(updater))
         setSaved((current) => ({
           ...current,
-          orders: current.orders.map((o) => {
-            if (o.id === orderId) {
-              return {
-                ...o,
-                paymentMethod: 'UPI / PhonePe',
-                payment: 'Pending',
-                paymentDetails: {
-                  ...(o.paymentDetails || {}),
-                  provider: 'phonepe_upi',
-                  payeeName: 'GAGAN DEEP',
-                  payeeUpiNumber: '6360074675',
-                  utrNumber: utrNumber.trim(),
-                  verificationStatus: 'Pending Verification',
-                  submittedAt: new Date().toISOString(),
-                  adminNotes: notes ? notes.trim() : '',
-                },
-              }
-            }
-            return o
-          }),
+          orders: current.orders.map(updater),
         }))
         return { success: true, message: res.message || 'UPI reference submitted. Payment pending verification.' }
       }
@@ -614,26 +577,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     verifyUpiPayment: async (orderId: string, action: 'approve' | 'reject', rejectReason?: string) => {
       const res = await apiClient.verifyUpiPayment(orderId, action, rejectReason)
       if (res.success) {
+        const updater = (o: DemoOrder): DemoOrder => {
+          if (o.id === orderId) {
+            return {
+              ...o,
+              payment: action === 'approve' ? 'Paid' : 'Failed',
+              paymentDetails: {
+                ...(o.paymentDetails || {}),
+                verificationStatus: action === 'approve' ? 'Verified' : 'Rejected',
+                verifiedAt: new Date().toISOString(),
+                verifiedBy: 'Owner',
+                paidAt: action === 'approve' ? new Date().toISOString() : undefined,
+                failureReason: action === 'reject' ? (rejectReason || 'Payment rejected by owner') : '',
+              },
+            }
+          }
+          return o
+        }
+        setCustomerOrders((prev) => prev.map(updater))
         setSaved((current) => ({
           ...current,
-          orders: current.orders.map((o) => {
-            if (o.id === orderId) {
-              return {
-                ...o,
-                payment: action === 'approve' ? 'Paid' : 'Failed',
-                status: action === 'approve' ? 'Confirmed' : o.status,
-                paymentDetails: {
-                  ...(o.paymentDetails || {}),
-                  verificationStatus: action === 'approve' ? 'Verified' : 'Rejected',
-                  verifiedAt: new Date().toISOString(),
-                  verifiedBy: 'Owner',
-                  paidAt: action === 'approve' ? new Date().toISOString() : undefined,
-                  failureReason: action === 'reject' ? (rejectReason || 'Payment rejected by owner') : '',
-                },
-              }
-            }
-            return o
-          }),
+          orders: current.orders.map(updater),
         }))
         return { success: true, message: res.message || 'Payment updated successfully.' }
       }
@@ -654,10 +618,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...current,
       records: current.records.filter((item) => item.id !== id),
     })),
-    signInLocal: (name, email) => setCustomer({ name, email }),
     signOutLocal: () => {
       setCustomer(null)
+      setCustomerOrders([])
       apiClient.clearCustomerToken()
+      try {
+        localStorage.removeItem('saa-customer-profile')
+      } catch {}
       setNotice('Signed out of customer account.')
     },
     clearAllData: () => {
@@ -670,14 +637,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         records: [],
       }))
       setCustomer(null)
+      setCustomerOrders([])
       apiClient.clearCustomerToken()
       try {
+        localStorage.removeItem('saa-customer-profile')
         localStorage.removeItem('saa-customer-order-ids')
-        setCustomerOrderIds([])
       } catch {}
       setNotice('Operational records cleared. Product catalogue is preserved.')
     },
-  }), [saved, customer, notice, isOwnerAuthenticated, customerOrderIds])
+  }), [saved, customer, customerOrders, notice, orderSyncError, isOwnerAuthenticated])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

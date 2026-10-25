@@ -37,7 +37,7 @@ export interface DemoOrderItem {
   image?: string
 }
 
-export type OrderStatus = 'Pending' | 'Confirmed' | 'Processing' | 'Dispatched' | 'Delivered' | 'Cancelled'
+export type OrderStatus = 'Pending' | 'Confirmed' | 'Processing' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Dispatched' | 'Delivered' | 'Cancelled'
 export type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded' | 'Pending Verification'
 
 export interface CustomerDeliveryDetails {
@@ -68,11 +68,14 @@ export interface PaymentDetails {
 
 export interface DemoOrder {
   id: string
+  user?: string
   customer: string
   customerEmail?: string
   phone?: string
   deliveryDetails?: CustomerDeliveryDetails
   date: string
+  updatedAt?: string
+  statusHistory?: { status: OrderStatus; changedAt: string; changedBy?: string }[]
   total: number
   status: OrderStatus
   payment: PaymentStatus
@@ -109,6 +112,8 @@ export interface AdminRecord {
 }
 
 export interface Customer {
+  id?: string
   name: string
   email: string
+  phone?: string
 }

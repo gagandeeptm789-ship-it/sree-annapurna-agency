@@ -10,8 +10,12 @@ const { getInvoice, getInvoiceHtml, getInvoicePdf } = require('../controllers/in
 const { protectCustomer, protectOwner, optionalAuth } = require('../middleware/authMiddleware');
 
 router.route('/')
-  .get(optionalAuth, getOrders)
+  .get(protectCustomer, getOrders)
   .post(protectCustomer, createOrder);
+
+// Dedicated route for owner operations portal (strictly requires owner role and returns all orders)
+router.route('/owner/all')
+  .get(protectOwner, getOrders);
 
 router.route('/:id')
   .get(optionalAuth, getOrderById);

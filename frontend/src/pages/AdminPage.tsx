@@ -1,6 +1,6 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, AlertTriangle, ArrowRight, BarChart3, Bell, Boxes, BriefcaseBusiness, Building2, Camera, CircleDollarSign, ClipboardList, Eye, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, Search, Settings, ShoppingCart, Truck, Users, X } from 'lucide-react'
+import { Activity, AlertTriangle, ArrowRight, BarChart3, Bell, Boxes, BriefcaseBusiness, Building2, Camera, CircleDollarSign, ClipboardList, Eye, FileText, LayoutDashboard, LogOut, Menu, Package, Plus, RefreshCw, Search, Settings, ShoppingCart, Truck, Users, X } from 'lucide-react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useStore } from '../context/StoreContext'
 import type { AdminRecord, AdminRecordType, Brand, DemoOrder, Product } from '../types'
@@ -55,7 +55,7 @@ const nav = navGroups.flatMap((group) => group.items)
 const money = (value: number) => `₹${value.toLocaleString('en-IN')}`
 const formatDate = (value: Date) => value.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
-const orderStatusList: DemoOrder['status'][] = ['Pending', 'Confirmed', 'Processing', 'Dispatched', 'Delivered', 'Cancelled']
+const orderStatusList: DemoOrder['status'][] = ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Out for Delivery', 'Dispatched', 'Delivered', 'Cancelled']
 
 export function AdminPage() {
   const location = useLocation()
@@ -64,9 +64,21 @@ export function AdminPage() {
   const current = nav.find((item) => item.id === section) ?? nav[0]
   const [mobileNav, setMobileNav] = useState(false)
   const [search, setSearch] = useState('')
-  const { products, brands, orders, records, saveProduct, deleteProduct, updateOrder, saveOrder, deleteOrder, saveBrand, saveRecord, deleteRecord, clearAllData, logoutOwner, notify } = useStore()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { products, brands, orders, records, orderSyncError, saveProduct, deleteProduct, updateOrder, saveBrand, saveRecord, deleteRecord, clearAllData, logoutOwner, notify, refreshOwnerOrders } = useStore()
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [editingOrder, setEditingOrder] = useState<DemoOrder | null>(null)
+
+  useEffect(() => {
+    refreshOwnerOrders?.()
+  }, [section])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    notify('Syncing live orders and catalogue from backend...')
+    const result = await refreshOwnerOrders?.()
+    setIsRefreshing(false)
+    notify(result ? 'Orders synchronized with database.' : 'Unable to synchronize orders. Check the connection and retry.')
+  }
   const [viewingOrder, setViewingOrder] = useState<DemoOrder | null>(null)
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
   const [editingRecord, setEditingRecord] = useState<AdminRecord | null>(null)
@@ -74,15 +86,6 @@ export function AdminPage() {
   const openProductForm = (product?: Product) => setEditingProduct(product ?? {
     id: `product-${Date.now()}`, name: '', brandId: '', category: '', description: '',
     price: 0, sku: '', stock: 0, pack: '', image: '', active: true,
-  })
-  const openOrderForm = (order?: DemoOrder) => setEditingOrder(order ?? {
-    id: `ORD-${Date.now().toString(36).toUpperCase()}`,
-    customer: '',
-    date: formatDate(new Date()),
-    total: 0,
-    status: 'Pending',
-    payment: 'Pending',
-    items: [],
   })
   const openRecordForm = (type: AdminRecordType, record?: AdminRecord) => setEditingRecord(record ?? {
     id: `${type}-${Date.now()}`, type, name: '', contact: '', details: '', amount: null, status: '',
@@ -175,6 +178,16 @@ export function AdminPage() {
           <span aria-hidden="true" />
           Owner mode
         </span>
+        <button
+          className="button button-outline button-small"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Sync live orders and database data"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} aria-hidden="true" />
+          <span>{isRefreshing ? 'Syncing...' : 'Sync DB'}</span>
+        </button>
         <button className="admin-icon-button" aria-label="Notifications" onClick={() => notify('No new operational alerts.')}>
           <Bell size={17} />
         </button>
@@ -188,6 +201,7 @@ export function AdminPage() {
         </button>
       </header>
       <div className="admin-content">
+        {orderSyncError && <div className="form-error" role="status">{orderSyncError}</div>}
         <div className="admin-intro">
           <span>Agency operations · {formatDate(new Date())}</span>
           <span className="admin-date">{awaitingFulfilment} orders awaiting fulfilment</span>
@@ -196,7 +210,7 @@ export function AdminPage() {
         {section === 'products' && <ProductsSection products={filteredProducts} brands={brands} onAdd={() => openProductForm()} onEdit={openProductForm} onDelete={(product) => { if (window.confirm(`Delete ${product.name}?`)) { deleteProduct(product.id); notify('Product deleted.') } }} />}
         {section === 'inventory' && <InventorySection products={filteredProducts} onAdjust={(product, amount) => { saveProduct({ ...product, stock: Math.max(0, product.stock + amount) }); notify('Stock updated.') }} />}
         {section === 'brands' && <BrandsSection brands={brands} products={products} onEdit={setEditingBrand} />}
-        {section === 'orders' && <OrdersSection orders={filteredOrders} onAdd={() => openOrderForm()} onEdit={openOrderForm} onView={setViewingOrder} onDelete={(order) => { if (window.confirm(`Delete order ${order.id}?`)) deleteOrder(order.id) }} onUpdate={(id, status) => updateOrder(id, { status })} />}
+        {section === 'orders' && <OrdersSection orders={filteredOrders} onView={setViewingOrder} onUpdate={(id, status) => updateOrder(id, { status })} onRefresh={handleRefresh} isRefreshing={isRefreshing} />}
         {section === 'dispatch' && <DispatchSection orders={filteredOrders} onUpdate={(id, status) => updateOrder(id, { status })} onView={setViewingOrder} />}
         {section === 'customers' && <RecordsSection type="customer" title="Customer directory" records={filteredRecords} onAdd={() => openRecordForm('customer')} onEdit={setEditingRecord} onDelete={(record) => deleteRecord(record.id)} />}
         {section === 'distributors' && <RecordsSection type="distributor" title="Distributors & business partners" records={filteredRecords} onAdd={() => openRecordForm('distributor')} onEdit={setEditingRecord} onDelete={(record) => deleteRecord(record.id)} />}
@@ -211,7 +225,6 @@ export function AdminPage() {
       <footer className="admin-footer"><span>Sree Annapurna Agency</span><span>Authorized Regional Brand Distribution</span><Link to="/about">About Agency</Link></footer>
     </div>
     {editingProduct && <ProductModal product={editingProduct} brands={brands} onClose={() => setEditingProduct(null)} onSave={(product) => { saveProduct(product); setEditingProduct(null); notify('Product saved.') }} />}
-    {editingOrder && <OrderModal order={editingOrder} onClose={() => setEditingOrder(null)} onSave={(order) => { saveOrder(order); setEditingOrder(null); notify('Order saved.') }} />}
     {viewingOrder && <OrderDetailsModal order={viewingOrder} products={products} onClose={() => setViewingOrder(null)} onUpdateStatus={(status) => { updateOrder(viewingOrder.id, { status }); setViewingOrder({ ...viewingOrder, status }); notify(`Order status updated to ${status}.`) }} />}
     {editingBrand && <BrandModal brand={editingBrand} onClose={() => setEditingBrand(null)} onSave={(brand) => { saveBrand(brand); setEditingBrand(null); notify('Brand information updated.') }} />}
     {editingRecord && <RecordModal record={editingRecord} onClose={() => setEditingRecord(null)} onSave={(record) => { saveRecord(record); setEditingRecord(null); notify('Record saved.') }} />}
@@ -379,14 +392,43 @@ function BrandsSection({ brands, products, onEdit }: { brands: Brand[]; products
   return <><div className="demo-notice"><span className="demo-notice-icon"><Boxes size={17} /></span><span><strong>Brand identities & partners</strong><small>Six recognized brands distributed by Sree Annapurna Agency.</small></span></div><div className="brand-admin-grid">{brands.map((brand) => <article className="brand-admin-card" key={brand.id}><div className="brand-admin-image" style={{ backgroundColor: `${brand.color}18` }}><ImageAsset src={brand.image} alt={`${brand.name} brand image`} fallback="Image" className="brand-admin-asset" fallbackClassName="image-upload-empty" fit="contain" /><span>{brand.category}</span></div><div className="brand-admin-info"><div><h2>{brand.name}</h2><span>{products.filter((product) => product.brandId === brand.id).length} products</span></div><p>{brand.description}</p><button className="button button-outline button-small" onClick={() => onEdit(brand)}>Edit brand / upload asset</button></div></article>)}</div></>
 }
 
-function OrdersSection({ orders, onAdd, onEdit, onView, onDelete, onUpdate }: { orders: DemoOrder[]; onAdd: () => void; onEdit: (order: DemoOrder) => void; onView: (order: DemoOrder) => void; onDelete: (order: DemoOrder) => void; onUpdate: (id: string, status: DemoOrder['status']) => void }) {
-  return <><div className="admin-section-toolbar"><span>{orders.length} customer orders</span><button className="button button-admin" onClick={onAdd}><Plus size={16} />Add order</button></div><div className="panel table-panel"><div className="table-caption"><div><strong>Customer orders</strong><span>Review and update incoming orders with full customer and item details.</span></div></div><OrdersTable orders={orders} onUpdate={onUpdate} onEdit={onEdit} onView={onView} onDelete={onDelete} /></div></>
+function OrdersSection({ orders, onView, onUpdate, onRefresh, isRefreshing }: { orders: DemoOrder[]; onView: (order: DemoOrder) => void; onUpdate: (id: string, status: DemoOrder['status']) => void; onRefresh?: () => void; isRefreshing?: boolean }) {
+  return (
+    <>
+      <div className="admin-section-toolbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span>{orders.length} customer orders</span>
+          {onRefresh && (
+            <button
+              className="button button-outline button-small"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title="Refresh and sync orders directly from database"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Syncing...' : 'Sync Orders'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="panel table-panel">
+        <div className="table-caption">
+          <div>
+            <strong>Customer orders</strong>
+            <span>Review and update incoming orders with full customer and item details.</span>
+          </div>
+        </div>
+        <OrdersTable orders={orders} onUpdate={onUpdate} onView={onView} />
+      </div>
+    </>
+  )
 }
 
-function OrdersTable({ orders, onUpdate, onEdit, onView, onDelete }: { orders: DemoOrder[]; onUpdate?: (id: string, status: DemoOrder['status']) => void; onEdit?: (order: DemoOrder) => void; onView?: (order: DemoOrder) => void; onDelete?: (order: DemoOrder) => void }) {
+function OrdersTable({ orders, onUpdate, onView }: { orders: DemoOrder[]; onUpdate?: (id: string, status: DemoOrder['status']) => void; onView?: (order: DemoOrder) => void }) {
   const { notify } = useStore()
-  const canManage = !!onEdit || !!onDelete || !!onView
-  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Pending Verification' : order.payment}</span>{order.paymentDetails?.utrNumber && <div style={{ fontSize: '11px', color: '#173F35', fontWeight: 600, marginTop: '2px' }}>UTR: {order.paymentDetails.utrNumber}</div>}</td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}<button type="button" onClick={async () => { notify('Downloading official invoice...'); const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order); if (res.success) notify(`Invoice for ${order.id} downloaded.`); else notify(res.message || 'Invoice download failed.'); }} className="invoice-btn" title="Download official PDF invoice" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={13} /> Invoice</button>{onEdit && <button type="button" onClick={() => onEdit(order)}>Edit</button>}{onDelete && <button type="button" className="delete-text" onClick={() => onDelete(order)}>Delete</button>}</div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
+  const canManage = !!onView
+  return <div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>ITEMS</th><th>DATE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th>{onUpdate && <th>UPDATE STATUS</th>}{canManage && <th>ACTIONS</th>}</tr></thead><tbody>{orders.length ? orders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer || 'Customer'}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td><span className="order-items-badge">{order.items?.length ?? 0} item{(order.items?.length ?? 0) === 1 ? '' : 's'}</span></td><td>{order.date}</td><td><span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>{order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Pending Verification' : order.payment}</span>{order.paymentDetails?.utrNumber && <div style={{ fontSize: '11px', color: '#173F35', fontWeight: 600, marginTop: '2px' }}>UTR: {order.paymentDetails.utrNumber}</div>}</td><td><span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span></td><td><strong>{money(order.total)}</strong></td>{onUpdate && <td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Update ${order.id} status`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td>}{canManage && <td><div className="row-actions">{onView && <button type="button" onClick={() => onView(order)} className="view-btn" title="View full details"><Eye size={14} /> View</button>}<button type="button" onClick={async () => { notify('Downloading official invoice...'); const res = await apiClient.downloadInvoicePdf(order.id, order.accessToken, order); if (res.success) notify(`Invoice for ${order.id} downloaded.`); else notify(res.message || 'Invoice download failed.'); }} className="invoice-btn" title="Download official PDF invoice" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={13} /> Invoice</button></div></td>}</tr>) : <EmptyTable columns={7 + Number(!!onUpdate) + Number(canManage)} text="No orders recorded yet." />}</tbody></table></div>
 }
 
 function EmptyTable({ columns, text }: { columns: number; text: string }) {
@@ -414,8 +456,8 @@ function SalesSection({ orders, records, onAdd, onEdit, onDelete, onViewOrder }:
 }
 
 function DispatchSection({ orders, onUpdate, onView }: { orders: DemoOrder[]; onUpdate: (id: string, status: DemoOrder['status']) => void; onView: (order: DemoOrder) => void }) {
-  const dispatchable = orders.filter((order) => ['Pending', 'Confirmed', 'Processing', 'Dispatched'].includes(order.status))
-  return <><div className="demo-notice"><span className="demo-notice-icon"><Truck size={17} /></span><span><strong>Delivery & dispatch management</strong><small>Manage delivery fulfillment and transit statuses.</small></span></div><div className="panel table-panel"><div className="table-caption"><div><strong>Orders awaiting fulfilment</strong><span>{dispatchable.length} orders</span></div></div><div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>DELIVERY CITY</th><th>STATUS</th><th>UPDATE</th><th>DETAILS</th></tr></thead><tbody>{dispatchable.length ? dispatchable.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td>{order.deliveryDetails?.city || '—'}</td><td><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span></td><td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Dispatch status for ${order.id}`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td><td><button type="button" className="view-btn" onClick={() => onView(order)}><Eye size={14} /> View</button></td></tr>) : <EmptyTable columns={6} text="No orders awaiting dispatch." />}</tbody></table></div></div></>
+  const dispatchable = orders.filter((order) => ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Out for Delivery', 'Dispatched'].includes(order.status))
+  return <><div className="demo-notice"><span className="demo-notice-icon"><Truck size={17} /></span><span><strong>Delivery & dispatch management</strong><small>Manage delivery fulfillment and transit statuses.</small></span></div><div className="panel table-panel"><div className="table-caption"><div><strong>Orders awaiting fulfilment</strong><span>{dispatchable.length} orders</span></div></div><div className="table-scroll"><table><thead><tr><th>ORDER ID</th><th>CUSTOMER</th><th>DELIVERY CITY</th><th>STATUS</th><th>UPDATE</th><th>DETAILS</th></tr></thead><tbody>{dispatchable.length ? dispatchable.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td><div><strong>{order.customer}</strong>{order.phone && <small className="table-subline">{order.phone}</small>}</div></td><td>{order.deliveryDetails?.city || '—'}</td><td><span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span></td><td><select className="table-select" value={order.status} onChange={(event) => onUpdate(order.id, event.target.value as DemoOrder['status'])} aria-label={`Dispatch status for ${order.id}`}>{orderStatusList.map((status) => <option key={status}>{status}</option>)}</select></td><td><button type="button" className="view-btn" onClick={() => onView(order)}><Eye size={14} /> View</button></td></tr>) : <EmptyTable columns={6} text="No orders awaiting dispatch." />}</tbody></table></div></div></>
 }
 
 function ReportsSection({ products, orders, records }: { products: Product[]; orders: DemoOrder[]; records: AdminRecord[] }) {
@@ -626,26 +668,6 @@ function OrderDetailsModal({ order, products, onClose, onUpdateStatus }: { order
       </div>
     </div>
   )
-}
-
-function OrderModal({ order, onClose, onSave }: { order: DemoOrder; onClose: () => void; onSave: (order: DemoOrder) => void }) {
-  const [form, setForm] = useState<DemoOrder>(order)
-  const [error, setError] = useState('')
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!form.id.trim() || !form.customer.trim() || !form.date.trim()) {
-      setError('Add an order ID, customer name, and date.')
-      return
-    }
-    if (!Number.isFinite(form.total) || form.total < 0) {
-      setError('Enter a valid non-negative total.')
-      return
-    }
-    onSave({ ...form, id: form.id.trim(), customer: form.customer.trim() })
-  }
-
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="admin-modal" role="dialog" aria-modal="true" aria-label={order.customer ? 'Edit order' : 'Add order'} onClick={(event) => event.stopPropagation()}><div className="modal-heading"><div><p className="eyebrow">Order management</p><h2>{order.customer ? 'Edit order' : 'Add order'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={19} /></button></div><form className="form-stack" onSubmit={submit}><div className="field-grid"><label>Order ID<input required value={form.id} readOnly /></label><label>Customer<input required value={form.customer} onChange={(event) => setForm({ ...form, customer: event.target.value })} /></label><label>Date<input required value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label><label>Total (₹)<input type="number" min="0" step="0.01" value={form.total} onChange={(event) => setForm({ ...form, total: Number(event.target.value) })} /></label><label>Payment status<select value={form.payment} onChange={(event) => setForm({ ...form, payment: event.target.value as DemoOrder['payment'] })}><option>Pending</option><option>Paid</option><option>Refunded</option></select></label><label>Order status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as DemoOrder['status'] })}>{orderStatusList.map((st) => <option key={st}>{st}</option>)}</select></label></div>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button className="button button-dark">Save order</button></div></form></div></div>
 }
 
 function ProductModal({ product, brands, onClose, onSave }: { product: Product; brands: Brand[]; onClose: () => void; onSave: (product: Product) => void }) {

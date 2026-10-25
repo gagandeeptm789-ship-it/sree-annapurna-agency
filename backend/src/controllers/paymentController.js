@@ -7,33 +7,41 @@ const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
+function requireDatabase(res) {
+  if (mongoose.connection.readyState === 1) return true;
+  res.status(503).json({ success: false, message: 'Payment service is unavailable because the database is not connected.' });
+  return false;
+}
+
+function isAuthorizedOrderAccess(req, order) {
+  const isOwner = req.user?.role === 'owner';
+  const isCustomerOwner = req.user?.role === 'customer' &&
+    req.user.id && order.user && String(order.user) === String(req.user.id);
+  const isGuestTokenAuthorized = !req.user && order.isGuest &&
+    req.headers['x-order-token'] && order.accessToken &&
+    req.headers['x-order-token'] === order.accessToken;
+  return Boolean(isOwner || isCustomerOwner || isGuestTokenAuthorized);
+}
+
 // @desc    Initiate payment order (Razorpay or Sandbox)
 // @route   POST /api/payments/create-order
 exports.createPaymentOrder = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const { orderId } = req.body;
     if (!orderId) {
       return res.status(400).json({ success: false, message: 'orderId is required to initiate payment.' });
     }
 
-    let order = null;
-    if (mongoose.connection.readyState === 1) {
-      order = await Order.findOne({ orderId });
-    } else {
-      const { memoryOrders } = require('./orderController');
-      order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    }
+    const order = await Order.findOne({ orderId });
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
     }
 
-    // Verify customer ownership
-    const isOwner = req.user && req.user.role === 'owner';
-    const userEmail = req.user && req.user.email ? req.user.email.toLowerCase() : null;
-    const isAuthorized = isOwner || (userEmail && order.customerEmail && order.customerEmail.toLowerCase() === userEmail) || (req.user && req.user.id && order.user && String(order.user) === String(req.user.id));
-    if (!isAuthorized) {
-      return res.status(403).json({ success: false, message: 'Access denied: You are not authorized to initiate payment for this order.' });
+    if (!isAuthorizedOrderAccess(req, order)) {
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({ success: false, message: 'Access denied: You are not authorized to initiate payment for this order.' });
     }
 
     const amountInPaise = Math.round(order.total * 100);
@@ -79,10 +87,12 @@ exports.createPaymentOrder = async (req, res, next) => {
     }
 
     // Secured Test Mode when Razorpay keys are not yet configured in environment
+    if (process.env.NODE_ENV === 'production' || !process.env.TEST_PAYMENT_SECRET) {
+      return res.status(503).json({ success: false, message: 'A live payment gateway is not configured.' });
+    }
     const sandboxTransactionId = `test_tx_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`;
-    const secretForTest = process.env.JWT_SECRET || 'saa-master-secret-key-fmcg-2026-sree-annapurna-agency';
     const testSignature = crypto
-      .createHmac('sha256', secretForTest)
+      .createHmac('sha256', process.env.TEST_PAYMENT_SECRET)
       .update(`${order.orderId}|${amountInPaise}|${sandboxTransactionId}`)
       .digest('hex');
 
@@ -108,30 +118,22 @@ exports.createPaymentOrder = async (req, res, next) => {
 // @route   POST /api/payments/verify
 exports.verifyPayment = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const { orderId, razorpayPaymentId, razorpayOrderId, razorpaySignature, sandboxTransactionId, testSignature } = req.body;
 
     if (!orderId) {
       return res.status(400).json({ success: false, message: 'orderId is required for payment verification.' });
     }
 
-    let order = null;
-    if (mongoose.connection.readyState === 1) {
-      order = await Order.findOne({ orderId });
-    } else {
-      const { memoryOrders } = require('./orderController');
-      order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    }
+    const order = await Order.findOne({ orderId });
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
     }
 
-    // Verify ownership
-    const isOwner = req.user && req.user.role === 'owner';
-    const userEmail = req.user && req.user.email ? req.user.email.toLowerCase() : null;
-    const isAuthorized = isOwner || (userEmail && order.customerEmail && order.customerEmail.toLowerCase() === userEmail) || (req.user && req.user.id && order.user && String(order.user) === String(req.user.id));
-    if (!isAuthorized) {
-      return res.status(403).json({ success: false, message: 'Access denied: You are not authorized to verify payment for this order.' });
+    if (!isAuthorizedOrderAccess(req, order)) {
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({ success: false, message: 'Access denied: You are not authorized to verify payment for this order.' });
     }
 
     let isVerified = false;
@@ -150,12 +152,11 @@ exports.verifyPayment = async (req, res, next) => {
       if (expectedBuffer.length === actualBuffer.length && crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
         isVerified = true;
       }
-    } else if (sandboxTransactionId && testSignature) {
+    } else if (process.env.NODE_ENV !== 'production' && process.env.TEST_PAYMENT_SECRET && sandboxTransactionId && testSignature) {
       // 2. Cryptographically validated test mode signature verification
       const amountInPaise = Math.round(order.total * 100);
-      const secretForTest = process.env.JWT_SECRET || 'saa-master-secret-key-fmcg-2026-sree-annapurna-agency';
       const expectedTestSignature = crypto
-        .createHmac('sha256', secretForTest)
+        .createHmac('sha256', process.env.TEST_PAYMENT_SECRET)
         .update(`${order.orderId}|${amountInPaise}|${sandboxTransactionId}`)
         .digest('hex');
 
@@ -181,40 +182,18 @@ exports.verifyPayment = async (req, res, next) => {
       paidAt: new Date(),
     };
 
-    if (mongoose.connection.readyState === 1) {
-      const updated = await Order.findOneAndUpdate(
-        { orderId },
-        { 
-          payment: 'Paid', 
-          status: 'Confirmed',
-          paymentDetails: paymentRecord 
-        },
-        { new: true }
-      );
-      if (!updated) {
-        return res.status(404).json({ success: false, message: 'Order record not found.' });
-      }
-      return res.json({
-        success: true,
-        message: 'Payment verified successfully. Order confirmed.',
-        data: updated,
-      });
+    const updated = await Order.findOneAndUpdate(
+      { orderId },
+      { payment: 'Paid', paymentDetails: paymentRecord },
+      { new: true }
+    );
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Order record not found.' });
     }
-
-    // In-memory update
-    const { memoryOrders } = require('./orderController');
-    order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    if (order) {
-      order.payment = 'Paid';
-      order.status = 'Confirmed';
-      order.paymentDetails = paymentRecord;
-    }
-
     return res.json({
       success: true,
-      mode: 'sandbox_test_gateway',
-      message: 'Sandbox payment verified successfully. Order status updated.',
-      data: order,
+      message: 'Payment verified successfully.',
+      data: updated,
     });
   } catch (error) {
     next(error);
@@ -225,33 +204,26 @@ exports.verifyPayment = async (req, res, next) => {
 // @route   POST /api/payments/fail
 exports.recordPaymentFailure = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const { orderId, reason } = req.body;
     if (!orderId) {
       return res.status(400).json({ success: false, message: 'orderId is required.' });
     }
 
     const failureReason = reason || 'Payment cancelled by customer or rejected by provider.';
-
-    if (mongoose.connection.readyState === 1) {
-      const updated = await Order.findOneAndUpdate(
-        { orderId },
-        {
-          payment: 'Failed',
-          'paymentDetails.failureReason': failureReason,
-        },
-        { new: true }
-      );
-      return res.json({ success: true, message: 'Payment marked as failed. Retry available.', data: updated });
+    const order = await Order.findOne({ orderId });
+    if (!order) return res.status(404).json({ success: false, message: 'Order record not found.' });
+    if (!isAuthorizedOrderAccess(req, order)) {
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({ success: false, message: 'Access denied: You are not authorized to update this order payment.' });
     }
-
-    const { memoryOrders } = require('./orderController');
-    const order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    if (order) {
-      order.payment = 'Failed';
-      order.paymentDetails = { ...(order.paymentDetails || {}), failureReason };
-    }
-
-    return res.json({ success: true, mode: 'memory_fallback', message: 'Payment marked as failed. Retry available.', data: order });
+    const updated = await Order.findOneAndUpdate(
+      { orderId },
+      { payment: 'Failed', 'paymentDetails.failureReason': failureReason },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
+    return res.json({ success: true, message: 'Payment marked as failed. Retry available.', data: updated });
   } catch (error) {
     next(error);
   }
@@ -261,6 +233,7 @@ exports.recordPaymentFailure = async (req, res, next) => {
 // @route   POST /api/payments/webhook
 exports.handleWebhook = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const signature = req.headers['x-razorpay-signature'];
     if (RAZORPAY_WEBHOOK_SECRET) {
       if (!signature) {
@@ -288,7 +261,7 @@ exports.handleWebhook = async (req, res, next) => {
       const p = payload.payment.entity;
       const orderReceipt = p.notes?.orderId || p.description;
       if (orderReceipt && mongoose.connection.readyState === 1) {
-        await Order.findOneAndUpdate({ orderId: orderReceipt }, { payment: 'Paid', status: 'Confirmed' });
+        await Order.findOneAndUpdate({ orderId: orderReceipt }, { payment: 'Paid' });
       }
     }
 
@@ -302,38 +275,26 @@ exports.handleWebhook = async (req, res, next) => {
 // @route   POST /api/payments/submit-utr
 exports.submitUpiPayment = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const { orderId, utrNumber, notes } = req.body;
-    if (!orderId || !utrNumber) {
+    if (typeof orderId !== 'string' || typeof utrNumber !== 'string' || !orderId || !utrNumber) {
       return res.status(400).json({ success: false, message: 'orderId and utrNumber are required.' });
     }
 
-    const cleanUtr = String(utrNumber).trim();
-    if (cleanUtr.length < 6) {
+    const cleanUtr = utrNumber.trim();
+    if (!/^[A-Za-z0-9]{6,20}$/.test(cleanUtr)) {
       return res.status(400).json({ success: false, message: 'Please provide a valid 12-digit UPI reference (UTR) number.' });
     }
 
-    let order = null;
-    if (mongoose.connection.readyState === 1) {
-      order = await Order.findOne({ orderId });
-    } else {
-      const { memoryOrders } = require('./orderController');
-      order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    }
+    const order = await Order.findOne({ orderId });
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
     }
 
-    // Verify ownership
-    const isOwner = req.user && req.user.role === 'owner';
-    const userEmail = req.user && req.user.email ? req.user.email.toLowerCase() : null;
-    const isAuthorized = isOwner || 
-      (userEmail && order.customerEmail && order.customerEmail.toLowerCase() === userEmail) || 
-      (req.user && req.user.id && order.user && String(order.user) === String(req.user.id)) ||
-      (req.headers['x-order-token'] && order.accessToken && req.headers['x-order-token'] === order.accessToken);
-
-    if (!isAuthorized) {
-      return res.status(403).json({ success: false, message: 'Access denied: You are not authorized to update payment details for this order.' });
+    if (!isAuthorizedOrderAccess(req, order)) {
+      const statusCode = req.user ? 403 : 401;
+      return res.status(statusCode).json({ success: false, message: 'Access denied: You are not authorized to update payment details for this order.' });
     }
 
     const upiDetails = {
@@ -347,32 +308,20 @@ exports.submitUpiPayment = async (req, res, next) => {
       adminNotes: notes ? String(notes).trim() : '',
     };
 
-    if (mongoose.connection.readyState === 1) {
-      const updated = await Order.findOneAndUpdate(
-        { orderId },
-        {
-          paymentMethod: 'UPI / PhonePe',
-          payment: 'Pending',
-          paymentDetails: upiDetails,
-        },
-        { new: true }
-      );
-      return res.json({
-        success: true,
-        message: 'UPI payment reference submitted successfully. Status: Payment Pending Verification.',
-        data: updated,
-      });
-    }
-
-    order.paymentMethod = 'UPI / PhonePe';
-    order.payment = 'Pending';
-    order.paymentDetails = { ...(order.paymentDetails || {}), ...upiDetails };
-
+    const updated = await Order.findOneAndUpdate(
+      { orderId },
+      {
+        paymentMethod: 'UPI / PhonePe',
+        payment: 'Pending',
+        paymentDetails: upiDetails,
+      },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
     return res.json({
       success: true,
-      mode: 'memory_fallback',
-      message: 'UPI payment reference recorded in local memory. Status: Payment Pending Verification.',
-      data: order,
+      message: 'UPI payment reference submitted successfully. Status: Payment Pending Verification.',
+      data: updated,
     });
   } catch (error) {
     next(error);
@@ -383,6 +332,7 @@ exports.submitUpiPayment = async (req, res, next) => {
 // @route   POST /api/payments/verify-upi
 exports.verifyUpiPayment = async (req, res, next) => {
   try {
+    if (!requireDatabase(res)) return;
     const { orderId, action, rejectReason } = req.body;
     if (!orderId) {
       return res.status(400).json({ success: false, message: 'orderId is required.' });
@@ -395,13 +345,7 @@ exports.verifyUpiPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Action must be either "approve" or "reject".' });
     }
 
-    let order = null;
-    if (mongoose.connection.readyState === 1) {
-      order = await Order.findOne({ orderId });
-    } else {
-      const { memoryOrders } = require('./orderController');
-      order = (memoryOrders || []).find((o) => o.orderId === orderId || o.id === orderId);
-    }
+    const order = await Order.findOne({ orderId });
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order record not found.' });
@@ -412,7 +356,6 @@ exports.verifyUpiPayment = async (req, res, next) => {
     if (isApprove) {
       const updateData = {
         payment: 'Paid',
-        status: 'Confirmed',
         'paymentDetails.verificationStatus': 'Verified',
         'paymentDetails.verifiedAt': new Date(),
         'paymentDetails.verifiedBy': verifiedBy,
@@ -420,31 +363,12 @@ exports.verifyUpiPayment = async (req, res, next) => {
         'paymentDetails.failureReason': '',
       };
 
-      if (mongoose.connection.readyState === 1) {
-        const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
-        return res.json({
-          success: true,
-          message: 'UPI Payment verified successfully. Order confirmed.',
-          data: updated,
-        });
-      }
-
-      order.payment = 'Paid';
-      order.status = 'Confirmed';
-      order.paymentDetails = {
-        ...(order.paymentDetails || {}),
-        verificationStatus: 'Verified',
-        verifiedAt: new Date(),
-        verifiedBy,
-        paidAt: new Date(),
-        failureReason: '',
-      };
-
+      const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
+      if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
       return res.json({
         success: true,
-        mode: 'memory_fallback',
-        message: 'UPI Payment marked as Paid in local memory. Order confirmed.',
-        data: order,
+        message: 'UPI Payment verified successfully.',
+        data: updated,
       });
     }
 
@@ -458,29 +382,12 @@ exports.verifyUpiPayment = async (req, res, next) => {
       'paymentDetails.failureReason': failureReason,
     };
 
-    if (mongoose.connection.readyState === 1) {
-      const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
-      return res.json({
-        success: true,
-        message: 'UPI Payment rejected.',
-        data: updated,
-      });
-    }
-
-    order.payment = 'Failed';
-    order.paymentDetails = {
-      ...(order.paymentDetails || {}),
-      verificationStatus: 'Rejected',
-      verifiedAt: new Date(),
-      verifiedBy,
-      failureReason,
-    };
-
+    const updated = await Order.findOneAndUpdate({ orderId }, updateData, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
     return res.json({
       success: true,
-      mode: 'memory_fallback',
-      message: 'UPI Payment marked as Failed in local memory.',
-      data: order,
+      message: 'UPI Payment rejected.',
+      data: updated,
     });
   } catch (error) {
     next(error);

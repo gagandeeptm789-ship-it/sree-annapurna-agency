@@ -1010,10 +1010,9 @@ export function CheckoutPage() {
     setSandboxModalOpen(false)
     if (verified) {
       setPaymentStatus('Paid')
-      setOrderStatus('Confirmed')
-      updateOrder(sandboxData.orderId, { payment: 'Paid', status: 'Confirmed' })
+      updateOrder(sandboxData.orderId, { payment: 'Paid' })
       setPlaced(true)
-      notify('Online payment verified successfully! Order confirmed.')
+      notify('Online payment verified successfully. Order fulfillment status is unchanged.')
     } else {
       setPaymentStatus('Failed')
       updateOrder(sandboxData.orderId, { payment: 'Failed' })
@@ -1172,10 +1171,9 @@ export function CheckoutPage() {
               })
               if (verified) {
                 setPaymentStatus('Paid')
-                setOrderStatus('Confirmed')
-                updateOrder(finalOrderId, { payment: 'Paid', status: 'Confirmed' })
+                updateOrder(finalOrderId, { payment: 'Paid' })
                 setPlaced(true)
-                notify('Online payment verified successfully! Order confirmed.')
+                notify('Online payment verified successfully. Order fulfillment status is unchanged.')
               } else {
                 setPaymentStatus('Failed')
                 updateOrder(finalOrderId, { payment: 'Failed' })
@@ -1798,7 +1796,7 @@ export function CheckoutPage() {
 }
 
 export function CustomerOrdersPage() {
-  const { getCustomerOrders, customer, notify } = useStore()
+  const { getCustomerOrders, customer, orderSyncError, notify } = useStore()
   const orders = getCustomerOrders()
 
   if (!customer) {
@@ -1846,6 +1844,7 @@ export function CustomerOrdersPage() {
           <h1>My Orders</h1>
           <p>Orders for {customer.name} ({customer.email})</p>
         </div>
+        {orderSyncError && <p className="form-error" role="status">{orderSyncError}</p>}
         <Link to="/shop" className="button button-outline button-small">
           Shop catalogue <ArrowRight size={14} />
         </Link>
@@ -1868,7 +1867,7 @@ export function CustomerOrdersPage() {
                   <span className="order-date-label">Placed {order.date}</span>
                 </div>
                 <div className="customer-order-status-group" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span>
+                  <span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span>
                   <span className={`payment-pill payment-${order.payment.toLowerCase().replace(/\s+/g, '-')}`}>
                     {order.paymentMethod?.includes('UPI') && order.payment === 'Pending' ? 'Payment Pending Verification' : order.payment}
                   </span>
@@ -1933,16 +1932,21 @@ export function OrderDetailPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const tokenParam = searchParams.get('token')
-  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, customer, notify } = useStore()
+  const { orders, products, brands, getCustomerOrders, isOwnerAuthenticated, customer, orderSyncError, notify } = useStore()
   const [isDownloading, setIsDownloading] = useState(false)
-  const order = orders.find((item) => item.id === id)
   const myOrders = getCustomerOrders()
+  const order = (isOwnerAuthenticated ? orders : myOrders).find((item) => item.id === id)
 
   if (!order) return <NotFoundPage />
 
-  // Customer isolation check (owner, authenticated customer owning this order, or matching guest token)
-  const isCustomerOwner = customer && order.customerEmail && order.customerEmail.toLowerCase() === customer.email.toLowerCase()
-  const isAuthorized = isOwnerAuthenticated || isCustomerOwner || myOrders.some((o) => o.id === order.id) || (tokenParam && order.accessToken === tokenParam)
+  // Customer isolation check: strictly check customer.id against order.user, or owner role, or matching guest token
+  const isCustomerOwner = Boolean(
+    customer && (
+      order.user && customer.id && order.user === customer.id
+    )
+  )
+  const isTokenAuthorized = Boolean(!customer && order.isGuest && tokenParam && order.accessToken === tokenParam)
+  const isAuthorized = isOwnerAuthenticated || isCustomerOwner || isTokenAuthorized
 
   if (!isAuthorized) {
     return (
@@ -1950,13 +1954,15 @@ export function OrderDetailPage() {
         <div className="breadcrumbs">
           <Link to="/">Home</Link><span>/</span><Link to="/account/orders">My Orders</Link>
         </div>
-        <div className="unauthorized-order-state">
-          <p className="eyebrow">Access Notice</p>
-          <h2>Order Record Restricted</h2>
-          <p>This order is associated with another customer account. Please sign in with the customer account used to place this order.</p>
-          <div className="auth-buttons">
-            <Link to="/login" className="button button-dark">Sign In</Link>
-            <Link to="/account/orders" className="button button-outline">View My Orders</Link>
+        <div className="unauthorized-order-state" style={{ textAlign: 'center', padding: '60px 20px', background: '#faf8f2', borderRadius: '8px', border: '1px solid #e7e8e2', margin: '40px auto', maxWidth: '640px' }}>
+          <p className="eyebrow" style={{ color: '#B52B24', fontWeight: 700 }}>403 Forbidden · Access Restricted</p>
+          <h2 style={{ fontSize: '1.75rem', margin: '8px 0 12px 0' }}>Order Belongs to Another Account</h2>
+          <p style={{ color: '#68716B', marginBottom: '24px' }}>
+            This order ({id}) is associated with a different customer account. You are only permitted to inspect orders placed by your authenticated account.
+          </p>
+          <div className="auth-buttons" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Link to="/account/orders" className="button button-primary">View My Orders <ArrowRight size={14} /></Link>
+            <Link to="/shop" className="button button-outline">Shop Catalogue</Link>
           </div>
         </div>
       </div>
@@ -1967,22 +1973,19 @@ export function OrderDetailPage() {
     { key: 'Pending', label: 'Order Received', desc: 'Placed & queued for agency review' },
     { key: 'Confirmed', label: 'Confirmed by Agency', desc: 'Verified and accepted for fulfillment' },
     { key: 'Processing', label: 'Processing & Packaging', desc: 'Sealed items packaged in warehouse' },
-    { key: 'Dispatched', label: 'Dispatched for Delivery', desc: 'Out for delivery to customer address' },
+    { key: 'Packed', label: 'Packed', desc: 'Order packed and ready for dispatch' },
+    { key: 'Shipped', label: 'Shipped', desc: 'Order handed to the delivery carrier' },
+    { key: 'Out for Delivery', label: 'Out for Delivery', desc: 'Order is on its way to your address' },
     { key: 'Delivered', label: 'Delivered', desc: 'Received & fulfilled' },
   ]
 
-  const statusHierarchy: Record<string, number> = {
-    Pending: 0,
-    Confirmed: 1,
-    Processing: 2,
-    Dispatched: 3,
-    Delivered: 4,
-    Cancelled: -1,
-  }
-
-  const currentLevel = statusHierarchy[order.status] ?? 0
+  const currentLevel = order.status === 'Dispatched'
+    ? steps.findIndex((step) => step.key === 'Out for Delivery')
+    : steps.findIndex((step) => step.key === order.status)
   const isCancelled = order.status === 'Cancelled'
   const d = order.deliveryDetails
+  const latestStatusUpdate = [...(order.statusHistory || [])].reverse().find((entry) => entry.status === order.status)?.changedAt
+    || order.updatedAt || order.date
 
   return (
     <div className="container page-space">
@@ -2000,7 +2003,9 @@ export function OrderDetailPage() {
           <p>
             Placed {order.date} · Current status: <strong>{order.status}</strong>
           </p>
+          <p>Last status update: <strong>{new Date(latestStatusUpdate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong></p>
         </div>
+        {orderSyncError && <p className="form-error" role="status">{orderSyncError}</p>}
       </div>
 
       <div className="order-detail-layout">
@@ -2017,6 +2022,7 @@ export function OrderDetailPage() {
                 {steps.map((step, index) => {
                   const isDone = index < currentLevel
                   const isCurrent = index === currentLevel
+                  const statusUpdate = [...(order.statusHistory || [])].reverse().find((entry) => entry.status === step.key)
                   return (
                     <div className={`timeline-step ${isDone ? 'complete' : ''} ${isCurrent ? 'active' : ''}`} key={step.key}>
                       <span className="step-marker">
@@ -2024,7 +2030,11 @@ export function OrderDetailPage() {
                       </span>
                       <div className="step-content">
                         <strong>{step.label}</strong>
-                        <small>{isDone ? 'Completed' : isCurrent ? 'In progress' : step.desc}</small>
+                        <small>
+                          {statusUpdate
+                            ? `Updated ${new Date(statusUpdate.changedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                            : isDone ? 'Completed' : isCurrent ? 'In progress' : step.desc}
+                        </small>
                       </div>
                     </div>
                   )
@@ -2127,7 +2137,7 @@ export function OrderDetailPage() {
 }
 
 export function AuthPage({ register = false }: { register?: boolean }) {
-  const { signInLocal, signInRemote, registerRemote, notify } = useStore()
+  const { signInRemote, registerRemote, notify } = useStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirectTarget = searchParams.get('redirect') || '/account'
@@ -2146,10 +2156,29 @@ export function AuthPage({ register = false }: { register?: boolean }) {
     const name = String(data.get('name') ?? '').trim()
     const phone = String(data.get('phone') ?? '').trim()
 
-    if (register && data.get('password') !== data.get('confirmPassword')) {
-      setFormError('The passwords do not match. Please re-enter them.')
-      notify('Passwords do not match.')
+    if (!email || !password) {
+      setFormError('Please enter both email and password.')
       return
+    }
+
+    if (register) {
+      if (!name) {
+        setFormError('Please enter your full name.')
+        return
+      }
+      if (phone.length < 10) {
+        setFormError('Please enter a valid 10-digit mobile number.')
+        return
+      }
+      if (password.length < 6) {
+        setFormError('Password must be at least 6 characters long.')
+        return
+      }
+      if (password !== String(data.get('confirmPassword') ?? '')) {
+        setFormError('The passwords do not match. Please re-enter them.')
+        notify('Passwords do not match.')
+        return
+      }
     }
 
     setLoading(true)
@@ -2160,30 +2189,19 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           notify(`Welcome to Sree Annapurna Agency, ${name}!`)
           navigate(redirectTarget)
           return
-        } else {
-          // Fallback to local session
-          signInLocal(name, email)
-          notify(`Signed in as ${name}`)
-          navigate(redirectTarget)
-          return
         }
+        setFormError(res.message || 'Unable to create your account. Please try again.')
       } else {
         const res = await signInRemote(email, password)
         if (res.success) {
           notify('Signed in successfully!')
           navigate(redirectTarget)
           return
-        } else {
-          // Fallback to local session
-          signInLocal(name || email.split('@')[0], email)
-          notify(`Signed in as ${email}`)
-          navigate(redirectTarget)
-          return
         }
+        setFormError(res.message || 'Unable to sign in. Please try again.')
       }
-    } catch {
-      signInLocal(name || email.split('@')[0], email)
-      navigate(redirectTarget)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Authentication is unavailable. Please retry.')
     } finally {
       setLoading(false)
     }
@@ -2254,10 +2272,19 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           </div>
 
           <form className="form-stack" onSubmit={submit}>
-            <div className="form-field">
-              <label htmlFor="account-name">Full name</label>
-              <input id="account-name" name="name" autoComplete="name" placeholder="Your name" required />
-            </div>
+            {register && (
+              <div className="form-field">
+                <label htmlFor="account-name">Full name</label>
+                <input id="account-name" name="name" autoComplete="name" placeholder="Your name" required />
+              </div>
+            )}
+
+            {register && (
+              <div className="form-field">
+                <label htmlFor="account-phone">Mobile number</label>
+                <input id="account-phone" name="phone" type="tel" autoComplete="tel" placeholder="10-digit mobile number" required />
+              </div>
+            )}
 
             <div className="form-field">
               <label htmlFor="account-email">Email address</label>
@@ -2339,7 +2366,7 @@ export function AccountPage() {
   const { customer, signOutLocal, getCustomerOrders } = useStore()
   const orders = getCustomerOrders()
   if (!customer) return <div className="container page-space"><div className="auth-prompt"><p className="eyebrow">Your space</p><h1>Account login</h1><p>Please sign in to view your account details and order history.</p><div><Link className="button button-dark" to="/login">Sign in<ArrowRight size={16} /></Link><Link className="button button-outline" to="/register">Create an account</Link></div></div></div>
-  return <div className="container page-space"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Your account</span></div><div className="page-heading"><div><p className="eyebrow">Customer account</p><h1>Hello, {customer.name}</h1></div><button className="button button-outline" onClick={signOutLocal}>Sign out</button></div><div className="account-grid"><aside className="account-menu"><a className="is-active" href="#profile">Profile</a><Link to="/account/orders">Orders ({orders.length})</Link><a href="#addresses">Addresses</a><a href="#wishlist">Wishlist</a></aside><div className="account-content"><section id="profile" className="form-panel"><p className="eyebrow">Profile</p><h2>{customer.name}</h2><p>{customer.email}</p><span className="demo-label">Active customer session</span></section><section id="orders" className="form-panel"><div className="panel-heading-row"><div><p className="eyebrow">Order history</p><h2>Recent orders</h2></div><Link to="/account/orders" className="text-link">View all orders ({orders.length}) <ArrowRight size={14} /></Link></div>{orders.length ? orders.slice(0, 3).map((order) => <div className="account-order" key={order.id}><span><Link to={`/account/orders/${order.id}`}><strong>{order.id}</strong></Link><small>{order.date}</small></span><span className={`status-pill status-${order.status.toLowerCase()}`}>{order.status}</span><strong>{money(order.total)}</strong></div>) : <p>No orders placed yet.</p>}</section><section id="addresses" className="form-panel"><h2>Saved addresses</h2><p>No addresses saved yet.</p></section><section id="wishlist" className="form-panel"><h2>Saved products</h2><p>No saved items yet.</p><Link className="text-link" to="/shop">Browse products <ArrowRight size={15} /></Link></section></div></div></div>
+  return <div className="container page-space"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Your account</span></div><div className="page-heading"><div><p className="eyebrow">Customer account</p><h1>Hello, {customer.name}</h1></div><button className="button button-outline" onClick={signOutLocal}>Sign out</button></div><div className="account-grid"><aside className="account-menu"><a className="is-active" href="#profile">Profile</a><Link to="/account/orders">Orders ({orders.length})</Link><a href="#addresses">Addresses</a><a href="#wishlist">Wishlist</a></aside><div className="account-content"><section id="profile" className="form-panel"><p className="eyebrow">Profile</p><h2>{customer.name}</h2><p>{customer.email}</p><span className="demo-label">Active customer session</span></section><section id="orders" className="form-panel"><div className="panel-heading-row"><div><p className="eyebrow">Order history</p><h2>Recent orders</h2></div><Link to="/account/orders" className="text-link">View all orders ({orders.length}) <ArrowRight size={14} /></Link></div>{orders.length ? orders.slice(0, 3).map((order) => <div className="account-order" key={order.id}><span><Link to={`/account/orders/${order.id}`}><strong>{order.id}</strong></Link><small>{order.date}</small></span>  <span className={`status-pill status-${order.status.toLowerCase().replace(/\s+/g, '-')}`}>{order.status}</span><strong>{money(order.total)}</strong></div>) : <p>No orders placed yet.</p>}</section><section id="addresses" className="form-panel"><h2>Saved addresses</h2><p>No addresses saved yet.</p></section><section id="wishlist" className="form-panel"><h2>Saved products</h2><p>No saved items yet.</p><Link className="text-link" to="/shop">Browse products <ArrowRight size={15} /></Link></section></div></div></div>
 }
 
 export function WholesalePage() {
