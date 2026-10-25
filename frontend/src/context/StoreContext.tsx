@@ -581,6 +581,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (o.id === orderId) {
             return {
               ...o,
+              status: action === 'approve' && o.status === 'Pending' ? 'Confirmed' : o.status,
               payment: action === 'approve' ? 'Paid' : 'Failed',
               paymentDetails: {
                 ...(o.paymentDetails || {}),
@@ -599,6 +600,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...current,
           orders: current.orders.map(updater),
         }))
+        await refreshOwnerOrders()
         return { success: true, message: res.message || 'Payment updated successfully.' }
       }
       return { success: false, message: res.message || 'Failed to update payment status.' }

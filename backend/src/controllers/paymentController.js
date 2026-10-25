@@ -426,6 +426,13 @@ exports.verifyUpiPayment = async (req, res, next) => {
         'paymentDetails.failureReason': '',
       };
 
+      if (order.status === 'Pending') {
+        updateData.status = 'Confirmed';
+        const history = Array.isArray(order.statusHistory) ? [...order.statusHistory] : [];
+        history.push({ status: 'Confirmed', changedAt: new Date(), changedBy: verifiedBy });
+        updateData.statusHistory = history;
+      }
+
       const updated = await saveOrderRecord(orderId, updateData);
       if (!updated) return res.status(404).json({ success: false, message: 'Order record not found.' });
       return res.json({

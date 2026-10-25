@@ -46,5 +46,41 @@
     "city": "",
     "pincode": "",
     "createdAt": "2026-10-25T14:44:46.845Z"
+  },
+  {
+    "id": "USR-MVNYONX6-143",
+    "name": "deekshith",
+    "email": "deekshith@gmail.com",
+    "password": "bd788406c8f630038f83dd220b92a95d:e039123440183f066a95c8ace5107fb7ca72de097427b7b8e5649c7391b3227fa714fbb5587d11ded4016539a7489cec81ef9ae63a11b469b6d045cf1cc07bad",
+    "phone": "7474745656",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T15:07:22.266Z"
+  },
+  {
+    "id": "USR-MVNZO3D5-940",
+    "name": "AAKSH BS",
+    "email": "akashbs8546@gmail.com",
+    "password": "37f9eaea6ccd7552b12f18f46a8ce06f:7b8d2f457c4fe6f89721283e6df2d12b55d8471ab4397e45dda9167518b73308ae308048ed3f5ecc9e49375addb3d5f3a8677a1d1cb591182cab3a2e0468140d",
+    "phone": "8546943957",
+    "role": "customer",
+    "address": "",
+    "city": "",
+    "pincode": "",
+    "createdAt": "2026-10-25T15:34:55.241Z"
+  },
+  {
+    "id": "USR-MVO0D5C5-427",
+    "name": "Radhika Rao",
+    "email": "radhika.1792943664128@test.com",
+    "password": "8d038105a98ba9279e5744fd8fc9fd05:e5f2a89295427e36988b0764f4ae6a8a9259a738795a8f7063f28379b86fefcd95ae76d2832ef4cfad8c1f1e2dbaeea03df6eee0fd19aee5e268cb087ac82866",
+    "phone": "9845011223",
+    "role": "customer",
+    "address": "Temple Road, Tilak Nagar",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-25T15:54:24.197Z"
   }
 ]

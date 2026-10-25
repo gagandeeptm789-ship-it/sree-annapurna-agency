@@ -93,13 +93,19 @@ class ApiClient {
       ...(options.headers as Record<string, string> || {}),
     }
 
-    // Attach owner token for admin endpoints or customer token for customer requests
-    const isOwnerReq = endpoint.includes('/admin') || endpoint.includes('/owner') || Boolean((options.headers as any)?.['x-require-owner'])
+    // Attach owner token for admin/owner endpoints, or customer token for customer requests
+    const isOwnerReq =
+      endpoint.includes('/admin') ||
+      endpoint.includes('/owner') ||
+      endpoint.includes('/verify-upi') ||
+      Boolean((options.headers as any)?.['x-require-owner'])
     const ownerToken = this.getOwnerToken()
     const customerToken = this.getCustomerToken()
 
-    if (isOwnerReq && ownerToken) {
-      headers['Authorization'] = `Bearer ${ownerToken}`
+    if (isOwnerReq) {
+      if (ownerToken) {
+        headers['Authorization'] = `Bearer ${ownerToken}`
+      }
     } else if (customerToken) {
       headers['Authorization'] = `Bearer ${customerToken}`
     } else if (ownerToken && endpoint === '/auth/me') {
@@ -498,6 +504,9 @@ class ApiClient {
     const res = await this.request<any>('/payments/verify-upi', {
       method: 'POST',
       body: JSON.stringify({ orderId, action, rejectReason }),
+      headers: {
+        'x-require-owner': 'true',
+      },
     })
     if (res.ok && res.data?.success) {
       return { success: true, message: res.data.message, data: res.data.data }

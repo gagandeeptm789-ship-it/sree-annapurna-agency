@@ -1,1 +1,49 @@
-[]
+[
+  {
+    "orderId": "SAA-1792943769913-7839",
+    "accessToken": "ef26a23001ff140bc01d7616816b7aa946666d248d5971a9",
+    "user": "USR-MVNXVM2L-712",
+    "idempotencyKey": "27ccc609-662d-4919-b96b-48dc138677e8",
+    "isGuest": false,
+    "customer": "manju",
+    "customerEmail": "manju@gmail.com",
+    "phone": "+916360074675",
+    "deliveryDetails": {
+      "name": "manju",
+      "phone": "+916360074675",
+      "email": "manju@gmail.com",
+      "address": "dvg",
+      "city": "dvg",
+      "pincode": "577004",
+      "notes": ""
+    },
+    "items": [
+      {
+        "productId": "swastik-mango-pickle",
+        "name": "Swastik Mango Pickle",
+        "pack": "300 g",
+        "quantity": 1,
+        "unitPrice": 135,
+        "image": "/images/products/swastik-mango-pickle.svg"
+      }
+    ],
+    "total": 135,
+    "status": "Confirmed",
+    "statusHistory": [
+      {
+        "status": "Pending",
+        "changedAt": "2026-10-25T15:56:09.914Z",
+        "changedBy": "USR-MVNXVM2L-712"
+      },
+      {
+        "status": "Confirmed",
+        "changedAt": "2026-10-25T15:56:18.035Z",
+        "changedBy": "owner-saa-primary"
+      }
+    ],
+    "paymentMethod": "Cash on Delivery / Agency Invoice",
+    "payment": "Pending",
+    "paymentDetails": {},
+    "date": "2026-10-25T15:56:09.914Z"
+  }
+]
