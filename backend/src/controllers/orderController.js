@@ -270,6 +270,15 @@ exports.createOrder = async (req, res, next) => {
     if (isDbConnected()) {
       const canonicalProducts = await Product.find({ id: { $in: productIds } }).lean();
       productMap = new Map(canonicalProducts.map((p) => [p.id, p]));
+      // Fallback for any product not yet seeded in MongoDB Atlas
+      if (productMap.size < productIds.length) {
+        const seedProducts = getFallbackProducts();
+        for (const sp of seedProducts) {
+          if (productIds.includes(sp.id) && !productMap.has(sp.id)) {
+            productMap.set(sp.id, sp);
+          }
+        }
+      }
     } else {
       const seedProducts = getFallbackProducts();
       const matching = seedProducts.filter((p) => productIds.includes(p.id));
@@ -281,7 +290,12 @@ exports.createOrder = async (req, res, next) => {
 
     for (const item of items) {
       const canonical = productMap.get(item.productId);
-      if (!canonical || canonical.active === false) {
+      const isAvailable = canonical &&
+        canonical.active !== false &&
+        canonical.isAvailable !== false &&
+        canonical.inStock !== false;
+
+      if (!canonical || !isAvailable) {
         return res.status(400).json({
           success: false,
           message: `Product "${item.name || item.productId}" is currently unavailable for order.`,
@@ -367,7 +381,13 @@ exports.createOrder = async (req, res, next) => {
         await session.withTransaction(async () => {
           for (const item of validatedItems) {
             const result = await Product.updateOne(
-              { id: item.productId, active: { $ne: false }, stock: { $gte: item.quantity } },
+              {
+                id: item.productId,
+                active: { $ne: false },
+                isAvailable: { $ne: false },
+                inStock: { $ne: false },
+                stock: { $gte: item.quantity },
+              },
               { $inc: { stock: -item.quantity } },
               { session }
             );

@@ -1,7 +1,16 @@
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+
+function resolveModule(name) {
+  try {
+    return require(name);
+  } catch {
+    return require(path.resolve(__dirname, '../../backend/node_modules', name));
+  }
+}
+
+const mongoose = resolveModule('mongoose');
+const dotenv = resolveModule('dotenv');
 
 // Load environment variables from backend/.env
 const envPath = path.resolve(__dirname, '../../backend/.env');
@@ -43,10 +52,12 @@ const ProductSchema = new mongoose.Schema(
     description: { type: String },
     price: { type: Number, required: true },
     sku: { type: String, required: true, unique: true },
-    stock: { type: Number, default: 0 },
+    stock: { type: Number, default: 50 },
     pack: { type: String },
     image: { type: String },
     active: { type: Boolean, default: true },
+    isAvailable: { type: Boolean, default: true },
+    inStock: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

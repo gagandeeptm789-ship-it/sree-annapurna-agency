@@ -39,7 +39,7 @@ const ProductSchema = new mongoose.Schema(
     },
     stock: {
       type: Number,
-      default: 0,
+      default: 50,
       min: 0,
     },
     pack: {
@@ -51,6 +51,14 @@ const ProductSchema = new mongoose.Schema(
       default: '',
     },
     active: {
+      type: Boolean,
+      default: true,
+    },
+    isAvailable: {
+      type: Boolean,
+      default: true,
+    },
+    inStock: {
       type: Boolean,
       default: true,
     },

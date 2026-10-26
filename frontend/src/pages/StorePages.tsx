@@ -1111,7 +1111,14 @@ export function CheckoutPage() {
 
     const valid = cart.every((item) => {
       const product = products.find((entry) => entry.id === item.productId)
-      return !!product && product.active && product.price > 0 && item.quantity > 0 && item.quantity <= product.stock
+      const isAvailable = !!product &&
+        product.active !== false &&
+        product.isAvailable !== false &&
+        product.inStock !== false &&
+        product.price > 0 &&
+        item.quantity > 0 &&
+        item.quantity <= (typeof product.stock === 'number' ? product.stock : 50)
+      return isAvailable
     })
     if (!valid) {
       setCheckoutError('One or more items in your basket are currently unavailable or out of stock.')

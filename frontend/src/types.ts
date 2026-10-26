@@ -20,6 +20,8 @@ export interface Product {
   pack: string
   image: string
   active: boolean
+  isAvailable?: boolean
+  inStock?: boolean
 }
 
 export interface CartItem {

@@ -24,19 +24,38 @@ exports.getProducts = async (req, res, next) => {
     const { brandId, category, search } = req.query;
 
     if (mongoose.connection.readyState === 1) {
-      const query = { active: true };
+      const query = {
+        active: { $ne: false },
+        isAvailable: { $ne: false },
+        inStock: { $ne: false },
+      };
       if (brandId) query.brandId = brandId;
       if (category) query.category = category;
       if (search) {
         query.name = { $regex: search, $options: 'i' };
       }
 
-      const products = await Product.find(query).lean();
+      const rawProducts = await Product.find(query).lean();
+      const products = rawProducts.map((p) => ({
+        ...p,
+        active: p.active !== false,
+        isAvailable: p.isAvailable !== false,
+        inStock: p.inStock !== false,
+        stock: typeof p.stock === 'number' ? p.stock : 50,
+      }));
       return res.json({ success: true, count: products.length, data: products });
     }
 
     // Fallback mode when DB is not yet connected
-    let items = getFallbackProducts().filter((p) => p.active !== false);
+    let items = getFallbackProducts()
+      .filter((p) => p.active !== false && p.isAvailable !== false && p.inStock !== false)
+      .map((p) => ({
+        ...p,
+        active: p.active !== false,
+        isAvailable: p.isAvailable !== false,
+        inStock: p.inStock !== false,
+        stock: typeof p.stock === 'number' ? p.stock : 50,
+      }));
     if (brandId) items = items.filter((p) => p.brandId === brandId);
     if (category) items = items.filter((p) => p.category.toLowerCase() === category.toLowerCase());
     if (search) {
