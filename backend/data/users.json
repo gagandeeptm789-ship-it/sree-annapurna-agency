@@ -106,5 +106,17 @@
     "city": "Shimoga",
     "pincode": "577201",
     "createdAt": "2026-10-26T15:13:16.068Z"
+  },
+  {
+    "id": "USR-MVPG59KR-971",
+    "name": "Radhika Rao",
+    "email": "radhika.1793030636386@test.com",
+    "password": "f57bfc871a4858cfc17f2dafc55af306:fc2c435743c24bc812d616f32608ef47e9fbcb8577015bd3b12f694048cbd31cc9f4e575b62e5151009f58bdc4d6317109060480d6c7591337dfa763f74fb71c",
+    "phone": "9845011223",
+    "role": "customer",
+    "address": "Temple Road, Tilak Nagar",
+    "city": "Shimoga",
+    "pincode": "577201",
+    "createdAt": "2026-10-26T16:03:56.475Z"
   }
 ]

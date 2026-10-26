@@ -14,6 +14,17 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
     });
     console.log(`[MongoDB] Connected to database: ${conn.connection.name} (Host: ${conn.connection.host})`);
+
+    // Ensure canonical catalogue is populated in Atlas if collection is empty
+    try {
+      const { ensureCanonicalCatalogue } = require('../utils/catalogueSeeder');
+      ensureCanonicalCatalogue().catch((err) => {
+        console.warn('[MongoDB] Catalogue check warning:', err.message);
+      });
+    } catch {
+      // Non-blocking
+    }
+
     return conn;
   } catch (err) {
     // Sanitize message so credentials are never leaked in logs

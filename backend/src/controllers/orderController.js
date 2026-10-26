@@ -268,7 +268,12 @@ exports.createOrder = async (req, res, next) => {
     let productMap = new Map();
 
     if (isDbConnected()) {
-      const canonicalProducts = await Product.find({ id: { $in: productIds } }).lean();
+      let canonicalProducts = await Product.find({ id: { $in: productIds } }).lean();
+      if (canonicalProducts.length === 0) {
+        const { ensureCanonicalCatalogue } = require('../utils/catalogueSeeder');
+        await ensureCanonicalCatalogue();
+        canonicalProducts = await Product.find({ id: { $in: productIds } }).lean();
+      }
       productMap = new Map(canonicalProducts.map((p) => [p.id, p]));
     } else {
       const seedProducts = getFallbackProducts();

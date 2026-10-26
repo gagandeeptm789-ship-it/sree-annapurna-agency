@@ -21,6 +21,11 @@ const getFallbackBrands = () => {
 exports.getBrands = async (req, res, next) => {
   try {
     if (mongoose.connection.readyState === 1) {
+      const brandCount = await Brand.countDocuments();
+      if (brandCount === 0) {
+        const { ensureCanonicalCatalogue } = require('../utils/catalogueSeeder');
+        await ensureCanonicalCatalogue();
+      }
       const brands = await Brand.find({}).lean();
       return res.json({ success: true, count: brands.length, data: brands });
     }

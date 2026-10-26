@@ -24,6 +24,12 @@ exports.getProducts = async (req, res, next) => {
     const { brandId, category, search } = req.query;
 
     if (mongoose.connection.readyState === 1) {
+      const totalInDb = await Product.countDocuments();
+      if (totalInDb === 0) {
+        const { ensureCanonicalCatalogue } = require('../utils/catalogueSeeder');
+        await ensureCanonicalCatalogue();
+      }
+
       const query = {
         active: { $ne: false },
         isAvailable: { $ne: false },
