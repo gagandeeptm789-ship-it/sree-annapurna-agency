@@ -45,5 +45,63 @@
     "payment": "Pending",
     "paymentDetails": {},
     "date": "2026-10-25T15:56:09.914Z"
+  },
+  {
+    "orderId": "SAA-1792944575251-5377",
+    "accessToken": "ecdfc24ebafe912c220100461eebbc27638bdb406ff5c9ec",
+    "user": "USR-MVNXVM2L-712",
+    "idempotencyKey": "0b13f66b-623a-4e2e-b631-3d3c78bcdf47",
+    "isGuest": false,
+    "customer": "manju",
+    "customerEmail": "manju@gmail.com",
+    "phone": "7892270824",
+    "deliveryDetails": {
+      "name": "manju",
+      "phone": "7892270824",
+      "email": "manju@gmail.com",
+      "address": "Davangere",
+      "city": "Davangere",
+      "pincode": "577002",
+      "notes": ""
+    },
+    "items": [
+      {
+        "productId": "aruna-gulab-jamun-mix",
+        "name": "Aruna Gulab Jamun Mix",
+        "pack": "200 g",
+        "quantity": 2,
+        "unitPrice": 105,
+        "image": "/images/products/aruna-gulab-jamun-mix.svg"
+      }
+    ],
+    "total": 210,
+    "status": "Delivered",
+    "statusHistory": [
+      {
+        "status": "Pending",
+        "changedAt": "2026-10-25T16:09:35.252Z",
+        "changedBy": "USR-MVNXVM2L-712"
+      },
+      {
+        "status": "Confirmed",
+        "changedAt": "2026-10-25T16:09:43.922Z",
+        "changedBy": "owner-saa-primary"
+      },
+      {
+        "status": "Delivered",
+        "changedAt": "2026-10-25T16:13:20.605Z",
+        "changedBy": "owner-saa-primary"
+      }
+    ],
+    "paymentMethod": "Online Payment (UPI/Cards)",
+    "payment": "Paid",
+    "paymentDetails": {
+      "verificationStatus": "Verified",
+      "verifiedAt": "2026-10-25T16:09:54.435Z",
+      "verifiedBy": "owner@sreeannapurnaagency.com",
+      "paidAt": "2026-10-25T16:09:54.435Z",
+      "failureReason": ""
+    },
+    "date": "2026-10-25T16:09:35.252Z"
   }
 ]
