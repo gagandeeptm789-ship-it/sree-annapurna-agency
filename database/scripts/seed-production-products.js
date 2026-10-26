@@ -27,7 +27,7 @@ const dotenv = resolveModule('dotenv');
 const envPath = path.resolve(__dirname, '../../backend/.env');
 dotenv.config({ path: envPath });
 
-const uri = process.env.MONGODB_URI;
+const uri = (process.argv[2] || process.env.MONGODB_URI || '').trim().replace(/^["']|["']$/g, '');
 
 // Schemas
 const BrandSchema = new mongoose.Schema(
@@ -144,11 +144,13 @@ async function seedProduction() {
             description: p.description,
             price: p.price,
             sku: p.sku,
-            stock: p.stock,
             pack: p.pack,
             image: p.image,
             active: p.active !== false,
             isAvailable: true,
+          },
+          $setOnInsert: {
+            stock: p.stock,
             inStock: (p.stock || 0) > 0,
           },
         },
