@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node ../database/seed/seed.js",
+    "seed:production": "node ../database/scripts/seed-production-products.js",
     "migrate:stock": "node ../database/scripts/migrate-product-stock.js"
   },
   "keywords": ["express", "mongodb", "fmcg", "wholesale"],

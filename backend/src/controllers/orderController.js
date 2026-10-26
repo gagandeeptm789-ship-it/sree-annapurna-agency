@@ -270,15 +270,6 @@ exports.createOrder = async (req, res, next) => {
     if (isDbConnected()) {
       const canonicalProducts = await Product.find({ id: { $in: productIds } }).lean();
       productMap = new Map(canonicalProducts.map((p) => [p.id, p]));
-      // Fallback for any product not yet seeded in MongoDB Atlas
-      if (productMap.size < productIds.length) {
-        const seedProducts = getFallbackProducts();
-        for (const sp of seedProducts) {
-          if (productIds.includes(sp.id) && !productMap.has(sp.id)) {
-            productMap.set(sp.id, sp);
-          }
-        }
-      }
     } else {
       const seedProducts = getFallbackProducts();
       const matching = seedProducts.filter((p) => productIds.includes(p.id));
@@ -290,15 +281,24 @@ exports.createOrder = async (req, res, next) => {
 
     for (const item of items) {
       const canonical = productMap.get(item.productId);
-      const isAvailable = canonical &&
+      if (!canonical) {
+        return res.status(400).json({
+          success: false,
+          code: 'PRODUCT_NOT_FOUND',
+          message: `Product "${item.name || item.productId}" (ID: ${item.productId}) was not found in the store catalogue. Please refresh your basket.`,
+        });
+      }
+
+      const isAvailable =
         canonical.active !== false &&
         canonical.isAvailable !== false &&
         canonical.inStock !== false;
 
-      if (!canonical || !isAvailable) {
+      if (!isAvailable) {
         return res.status(400).json({
           success: false,
-          message: `Product "${item.name || item.productId}" is currently unavailable for order.`,
+          code: 'PRODUCT_UNAVAILABLE',
+          message: `Product "${canonical.name}" is currently unavailable for order.`,
         });
       }
 

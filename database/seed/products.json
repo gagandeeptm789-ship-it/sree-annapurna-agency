@@ -7,12 +7,10 @@
     "description": "Traditional spiced raw mango pickle aged in cold-pressed mustard oil with red chillies and fenugreek, sealed in a food-grade retail jar.",
     "price": 135,
     "sku": "SWA-PCK-MNG",
-    "stock": 50,
+    "stock": 40,
     "pack": "300 g",
     "image": "/images/products/swastik-mango-pickle.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-lime-pickle",
@@ -22,12 +20,10 @@
     "description": "Tangy and spiced cured lime pickle prepared with aromatic spices and mustard oil in an airtight sealed retail container.",
     "price": 125,
     "sku": "SWA-PCK-LIM",
-    "stock": 50,
+    "stock": 35,
     "pack": "300 g",
     "image": "/images/products/swastik-lime-pickle.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-sambar-powder",
@@ -40,9 +36,7 @@
     "stock": 50,
     "pack": "200 g",
     "image": "/images/products/swastik-sambar-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-rasam-powder",
@@ -52,12 +46,10 @@
     "description": "Signature rasam powder loaded with roasted black peppercorns, cumin, and aromatic lentils in an airtight foil packet.",
     "price": 80,
     "sku": "SWA-MAS-RAS",
-    "stock": 50,
+    "stock": 45,
     "pack": "200 g",
     "image": "/images/products/swastik-rasam-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-badam-powder",
@@ -67,12 +59,10 @@
     "description": "Nourishing almond beverage mix blended with crushed badam bits, green cardamom, and rich saffron essence in a sealed retail pack.",
     "price": 140,
     "sku": "SWA-MIX-BDM",
-    "stock": 50,
+    "stock": 30,
     "pack": "200 g",
     "image": "/images/products/swastik-badam-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-rava-idli-mix",
@@ -82,12 +72,10 @@
     "description": "Classic semolina breakfast mix tempered with mustard seeds, ginger, and curry leaves in a moisture-proof retail packet.",
     "price": 95,
     "sku": "SWA-MIX-RVA",
-    "stock": 50,
+    "stock": 40,
     "pack": "500 g",
     "image": "/images/products/swastik-rava-idli-mix.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-puliyogare-powder",
@@ -97,12 +85,10 @@
     "description": "Tangy tamarind rice masala blend containing roasted peanuts, white sesame, red chillies, and curry leaves in a sealed pouch.",
     "price": 85,
     "sku": "SWA-MAS-PLY",
-    "stock": 50,
+    "stock": 30,
     "pack": "200 g",
     "image": "/images/products/swastik-puliyogare-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-gulab-jamun-mix",
@@ -115,9 +101,7 @@
     "stock": 50,
     "pack": "200 g",
     "image": "/images/products/swastik-gulab-jamun-mix.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "swastik-roasted-vermicelli",
@@ -130,9 +114,7 @@
     "stock": 60,
     "pack": "400 g",
     "image": "/images/products/swastik-roasted-vermicelli.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-chilli-powder",
@@ -145,9 +127,7 @@
     "stock": 50,
     "pack": "200 g",
     "image": "/images/products/rala-chilli-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-turmeric-powder",
@@ -160,9 +140,7 @@
     "stock": 55,
     "pack": "200 g",
     "image": "/images/products/rala-turmeric-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-coriander-powder",
@@ -172,12 +150,10 @@
     "description": "Freshly pulverized whole coriander seeds offering a refreshing citrusy aroma, sealed in a retail packet.",
     "price": 85,
     "sku": "RAL-SP-COR",
-    "stock": 50,
+    "stock": 45,
     "pack": "200 g",
     "image": "/images/products/rala-coriander-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-chicken-masala",
@@ -187,12 +163,10 @@
     "description": "Artisanal spice mixture formulated for rich chicken curry and roasts, packaged in a moisture-resistant retail packet.",
     "price": 95,
     "sku": "RAL-BL-CHK",
-    "stock": 50,
+    "stock": 40,
     "pack": "100 g",
     "image": "/images/products/rala-chicken-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-meat-masala",
@@ -202,12 +176,10 @@
     "description": "Hearty, pungent masala crafted for mutton and rich meat preparations, sealed in a branded retail spice pouch.",
     "price": 105,
     "sku": "RAL-BL-MEA",
-    "stock": 50,
+    "stock": 35,
     "pack": "100 g",
     "image": "/images/products/rala-meat-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-garam-masala",
@@ -217,12 +189,10 @@
     "description": "Balanced finishing spice blend uniting royal cumin, cinnamon, green cardamom, and cloves in a sealed packet.",
     "price": 150,
     "sku": "RAL-BL-GAR",
-    "stock": 50,
+    "stock": 40,
     "pack": "100 g",
     "image": "/images/products/rala-garam-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "rala-kasuri-methi",
@@ -235,9 +205,7 @@
     "stock": 50,
     "pack": "50 g",
     "image": "/images/products/rala-kasuri-methi.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-555-grass-broom",
@@ -250,9 +218,7 @@
     "stock": 60,
     "pack": "1 unit",
     "image": "/images/products/monkey-555-grass-broom.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-555-cotton-mop",
@@ -262,12 +228,10 @@
     "description": "High-absorbency braided looped cotton yarn mop with sturdy handle socket and branded retail packaging wrap.",
     "price": 220,
     "sku": "MNK-CL-MOP",
-    "stock": 50,
+    "stock": 45,
     "pack": "1 unit",
     "image": "/images/products/monkey-555-cotton-mop.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-555-phenyl",
@@ -280,9 +244,7 @@
     "stock": 50,
     "pack": "1 L",
     "image": "/images/products/monkey-555-phenyl.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-555-ozone-cleaner",
@@ -292,12 +254,10 @@
     "description": "Multi-surface antibacterial cleaner in a 500 ml trigger spray bottle with adjustable mist nozzle.",
     "price": 130,
     "sku": "MNK-CL-OZN",
-    "stock": 50,
+    "stock": 40,
     "pack": "500 ml",
     "image": "/images/products/monkey-555-ozone-cleaner.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-555-bleaching-powder",
@@ -310,9 +270,7 @@
     "stock": 50,
     "pack": "1 kg",
     "image": "/images/products/monkey-555-bleaching-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-vvv-detergent-powder",
@@ -325,9 +283,7 @@
     "stock": 55,
     "pack": "1 kg",
     "image": "/images/products/monkey-vvv-detergent-powder.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-vvv-dishwash-bar",
@@ -340,9 +296,7 @@
     "stock": 70,
     "pack": "250 g",
     "image": "/images/products/monkey-vvv-dishwash-bar.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "monkey-vvv-dishwash-gel",
@@ -352,12 +306,10 @@
     "description": "Concentrated grease-dissolving dishwash gel in a 500 ml contoured squeeze bottle with flip-top cap.",
     "price": 115,
     "sku": "VVV-DC-GEL",
-    "stock": 50,
+    "stock": 45,
     "pack": "500 ml",
     "image": "/images/products/monkey-vvv-dishwash-gel.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-roasted-vermicelli",
@@ -370,9 +322,7 @@
     "stock": 50,
     "pack": "400 g",
     "image": "/images/products/aruna-roasted-vermicelli.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-gulab-jamun-mix",
@@ -382,12 +332,10 @@
     "description": "Special celebration dessert mix packaged in a heat-sealed 200 g pouch, ensuring fresh dough preparation.",
     "price": 105,
     "sku": "ARN-MIX-GJM",
-    "stock": 50,
+    "stock": 45,
     "pack": "200 g",
     "image": "/images/products/aruna-gulab-jamun-mix.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-chicken-masala",
@@ -400,9 +348,7 @@
     "stock": 50,
     "pack": "100 g",
     "image": "/images/products/aruna-chicken-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-mutton-masala",
@@ -412,12 +358,10 @@
     "description": "Select slow-toasted spices blended specifically for rich meat curries in a sealed 100 g spice packet.",
     "price": 100,
     "sku": "ARN-BL-MUT",
-    "stock": 50,
+    "stock": 40,
     "pack": "100 g",
     "image": "/images/products/aruna-mutton-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-fish-curry-masala",
@@ -427,12 +371,10 @@
     "description": "Coastal style fish curry spice mix with red chillies, coriander, and kokum notes in an airtight 100 g pouch.",
     "price": 85,
     "sku": "ARN-BL-FSH",
-    "stock": 50,
+    "stock": 40,
     "pack": "100 g",
     "image": "/images/products/aruna-fish-curry-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-egg-masala",
@@ -442,12 +384,10 @@
     "description": "Flavorful spice blend crafted for egg curries and egg roasts in a sealed 100 g retail packet.",
     "price": 75,
     "sku": "ARN-BL-EGG",
-    "stock": 50,
+    "stock": 35,
     "pack": "100 g",
     "image": "/images/products/aruna-egg-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-garam-masala",
@@ -457,12 +397,10 @@
     "description": "Hand-picked blend of warming roasted spices in a sealed 100 g poly packet that preserves essential aroma.",
     "price": 150,
     "sku": "ARN-BL-GAR",
-    "stock": 50,
+    "stock": 40,
     "pack": "100 g",
     "image": "/images/products/aruna-garam-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "aruna-biryani-masala",
@@ -472,12 +410,10 @@
     "description": "Royal aromatic blend containing star anise, nutmeg, green cardamom, and shahi jeera in a sealed 100 g packet.",
     "price": 110,
     "sku": "ARN-BL-BRY",
-    "stock": 50,
+    "stock": 45,
     "pack": "100 g",
     "image": "/images/products/aruna-biryani-masala.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   },
   {
     "id": "deeppam-aarti-oil-450ml",
@@ -490,8 +426,6 @@
     "stock": 60,
     "pack": "450 ml",
     "image": "/images/products/deeppam-aarti-oil-450ml.svg",
-    "active": true,
-    "isAvailable": true,
-    "inStock": true
+    "active": true
   }
 ]

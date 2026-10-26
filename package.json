@@ -10,6 +10,7 @@
     "build:frontend": "npm.cmd --prefix frontend run build",
     "start:backend": "node backend/src/server.js",
     "seed:db": "node database/seed/seed.js",
+    "seed:production": "node database/scripts/seed-production-products.js",
     "migrate:stock": "node database/scripts/migrate-product-stock.js",
     "install:all": "npm.cmd --prefix frontend install && npm.cmd --prefix backend install"
   },

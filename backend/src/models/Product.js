@@ -39,7 +39,7 @@ const ProductSchema = new mongoose.Schema(
     },
     stock: {
       type: Number,
-      default: 50,
+      default: 0,
       min: 0,
     },
     pack: {

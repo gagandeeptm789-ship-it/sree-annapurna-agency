@@ -52,7 +52,7 @@ const ProductSchema = new mongoose.Schema(
     description: { type: String },
     price: { type: Number, required: true },
     sku: { type: String, required: true, unique: true },
-    stock: { type: Number, default: 50 },
+    stock: { type: Number, default: 0 },
     pack: { type: String },
     image: { type: String },
     active: { type: Boolean, default: true },
